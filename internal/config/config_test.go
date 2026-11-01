@@ -29,22 +29,22 @@ func TestResolveModel(t *testing.T) {
 		wantURL   string
 		wantErr   bool
 	}{
-		{name: "detect anthropic first", env: map[string]string{"ANTHROPIC_API_KEY": "k", "OPENAI_API_KEY": "o"}, wantKind: KindAnthropic, wantModel: "claude-opus-5-5"},
-		{name: "deepseek preset", env: map[string]string{"DEEPSEEK_API_KEY": "k"}, wantKind: KindOpenAI, wantModel: "deepseek-chat", wantURL: "https://api.deepseek.com"},
+		{name: "detect anthropic first", env: map[string]string{"ANTHROPIC_API_KEY": "k", "OPENAI_API_KEY": "o"}, wantKind: KindAnthropic, wantModel: id("opus")},
+		{name: "deepseek preset", env: map[string]string{"DEEPSEEK_API_KEY": "k"}, wantKind: KindOpenAI, wantModel: id("deepseek"), wantURL: "https://api.deepseek.com"},
 		{name: "openai needs model", env: map[string]string{"OPENAI_API_KEY": "k"}, wantErr: true},
 		{name: "openai compatible from env", env: map[string]string{"OPENAI_API_KEY": "k", "OPENAI_BASE_URL": "http://localhost:11434/v1", "OPENAI_MODEL": "qwen3"}, wantKind: KindOpenAI, wantModel: "qwen3", wantURL: "http://localhost:11434/v1"},
-		{name: "built-in alias picks its provider", env: map[string]string{"ANTHROPIC_API_KEY": "k", "DEEPSEEK_API_KEY": "d"}, override: "deepseek-r", wantKind: KindOpenAI, wantModel: "deepseek-reasoner", wantURL: "https://api.deepseek.com"},
+		{name: "built-in alias picks its provider", env: map[string]string{"ANTHROPIC_API_KEY": "k", "DEEPSEEK_API_KEY": "d"}, override: "deepseek-r", wantKind: KindOpenAI, wantModel: id("deepseek-r"), wantURL: "https://api.deepseek.com"},
 		{name: "config alias shadows built-in", env: map[string]string{"ANTHROPIC_API_KEY": "k"}, override: "sonnet", wantKind: KindAnthropic, wantModel: "claude-sonnet-pinned"},
 		{name: "config alias with own endpoint and key", env: map[string]string{"OLLAMA_KEY": "x"}, override: "local", wantKind: KindOpenAI, wantModel: "qwen3:32b", wantURL: "http://localhost:11434/v1"},
 		{name: "config alias for ark", env: map[string]string{"ARK_API_KEY": "a"}, llm: LLM{Model: "doubao"}, wantKind: KindOpenAI, wantModel: "ep-123", wantURL: "https://ark.cn-beijing.volces.com/api/v3"},
 		{name: "provider/model", env: map[string]string{"OPENAI_API_KEY": "k"}, override: "openai/gpt-5", wantKind: KindOpenAI, wantModel: "gpt-5"},
 		{name: "bare provider name", env: map[string]string{"ARK_API_KEY": "a", "ARK_MODEL": "ep-9"}, override: "ark", wantKind: KindOpenAI, wantModel: "ep-9", wantURL: "https://ark.cn-beijing.volces.com/api/v3"},
 		{name: "-m beats WUZUO_MODEL beats llm.model", env: map[string]string{"ANTHROPIC_API_KEY": "k", "WUZUO_MODEL": "haiku"}, llm: LLM{Model: "opus"}, override: "sonnet", wantKind: KindAnthropic, wantModel: "claude-sonnet-pinned"},
-		{name: "WUZUO_MODEL beats llm.model", env: map[string]string{"ANTHROPIC_API_KEY": "k", "WUZUO_MODEL": "haiku"}, llm: LLM{Model: "opus"}, wantKind: KindAnthropic, wantModel: "claude-haiku-5-5"},
+		{name: "WUZUO_MODEL beats llm.model", env: map[string]string{"ANTHROPIC_API_KEY": "k", "WUZUO_MODEL": "haiku"}, llm: LLM{Model: "opus"}, wantKind: KindAnthropic, wantModel: id("haiku")},
 		{name: "raw ID uses configured provider", env: map[string]string{"ARK_API_KEY": "a"}, llm: LLM{Provider: "ark", Model: "ep-777"}, wantKind: KindOpenAI, wantModel: "ep-777", wantURL: "https://ark.cn-beijing.volces.com/api/v3"},
 		{name: "ollama tag with colon is a raw ID", env: map[string]string{"OPENAI_API_KEY": "k"}, llm: LLM{Provider: "openai", BaseURL: "http://h/v1"}, override: "qwen3:32b", wantKind: KindOpenAI, wantModel: "qwen3:32b", wantURL: "http://h/v1"},
-		{name: "llm.base_url does not leak into another provider", env: map[string]string{"ANTHROPIC_API_KEY": "k", "OPENAI_API_KEY": "o"}, llm: LLM{Provider: "openai", Model: "m", BaseURL: "http://gateway/v1"}, override: "opus", wantKind: KindAnthropic, wantModel: "claude-opus-5-5"},
-		{name: "anthropic without key but with federation uses SDK chain", env: map[string]string{"ANTHROPIC_FEDERATION_RULE_ID": "r"}, llm: LLM{Provider: "anthropic"}, wantKind: KindAnthropic, wantModel: "claude-opus-5-5"},
+		{name: "llm.base_url does not leak into another provider", env: map[string]string{"ANTHROPIC_API_KEY": "k", "OPENAI_API_KEY": "o"}, llm: LLM{Provider: "openai", Model: "m", BaseURL: "http://gateway/v1"}, override: "opus", wantKind: KindAnthropic, wantModel: id("opus")},
+		{name: "anthropic without key but with federation uses SDK chain", env: map[string]string{"ANTHROPIC_FEDERATION_RULE_ID": "r"}, llm: LLM{Provider: "anthropic"}, wantKind: KindAnthropic, wantModel: id("opus")},
 		{name: "anthropic alias without any credentials", env: map[string]string{}, llm: LLM{Model: "opus"}, wantErr: true},
 		{name: "alias whose key is missing", env: map[string]string{}, override: "deepseek", wantErr: true},
 		{name: "nothing configured", env: map[string]string{}, wantErr: true},
@@ -123,7 +123,7 @@ func TestLoadDefaultsAndEnvTarget(t *testing.T) {
 	if err := os.WriteFile(path, []byte("safety:\n  query_timeout: 3s\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("WUZUO_MYSQL_DSN", "u:p@tcp(localhost:3306)/")
+	t.Setenv("WUZUO_MYSQL_DSN", "u@tcp(localhost:3306)/")
 	cfg, err := Load(path)
 	if err != nil {
 		t.Fatal(err)
@@ -197,3 +197,49 @@ func TestMissingKeyMessageNamesModelAndVariable(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestResolveEndpointWithoutModel(t *testing.T) {
+	cfg := &Config{Models: map[string]ModelAlias{"local": {Provider: "openai", Model: "qwen3", BaseURL: "http://h:11434/v1", APIKeyEnv: "OLLAMA_KEY"}}}
+	e := env(map[string]string{"OPENAI_API_KEY": "k", "OLLAMA_KEY": "o"})
+	r, err := cfg.ResolveEndpoint("openai", e)
+	if err != nil || r.Kind != KindOpenAI || r.APIKey != "k" {
+		t.Fatalf("%+v %v", r, err)
+	}
+	if _, err := cfg.ResolveModel("openai", e); err == nil {
+		t.Fatal("ResolveModel must still require a model")
+	}
+	r, err = cfg.ResolveEndpoint("local", e)
+	if err != nil || r.BaseURL != "http://h:11434/v1" || r.APIKey != "o" {
+		t.Fatalf("alias endpoint: %+v %v", r, err)
+	}
+}
+
+func TestRefusalFallbackFollowsModelTable(t *testing.T) {
+	e := env(map[string]string{"ANTHROPIC_API_KEY": "k"})
+	yes, no := true, false
+	cases := []struct {
+		model string
+		set   *bool
+		want  bool
+	}{
+		{model: "opus", want: true},                        // built-in, supported
+		{model: "haiku", want: false},                      // built-in, not supported
+		{model: "anthropic/claude-new-model", want: false}, // unknown: off by default
+		{model: "anthropic/claude-new-model", set: &yes, want: true},
+		{model: "opus", set: &no, want: false},
+	}
+	for _, c := range cases {
+		cfg := &Config{LLM: LLM{RefusalFallback: c.set}}
+		r, err := cfg.ResolveModel(c.model, e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r.RefusalFallback != c.want {
+			t.Errorf("model=%s set=%v: RefusalFallback=%v, want %v", c.model, c.set, r.RefusalFallback, c.want)
+		}
+	}
+}
+
+// id returns the model ID a built-in short name currently points to, so tests
+// keep passing when a built-in model is updated.
+func id(name string) string { return builtin(name).Model }

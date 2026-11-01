@@ -20,8 +20,8 @@ type AnthropicOptions struct {
 	BaseURL string
 	// Effort is passed as output_config.effort when non-empty.
 	Effort string
-	// RefusalFallback enables server-side fallback for declined requests on
-	// models that support it. Only enable it for the first-party API.
+	// RefusalFallback enables server-side fallback for declined requests.
+	// Set it only for models that support it, on the first-party API.
 	RefusalFallback bool
 }
 
@@ -29,14 +29,6 @@ type AnthropicOptions struct {
 type Anthropic struct {
 	opts   AnthropicOptions
 	client anthropic.Client
-}
-
-// Models that accept `fallbacks: "default"`.
-var fallbackModels = map[string]bool{
-	"claude-opus-5-5":   true,
-	"claude-opus-5":     true,
-	"claude-fable-5-1":  true,
-	"claude-sonnet-5-5": true,
 }
 
 // NewAnthropic builds the adapter.
@@ -48,7 +40,9 @@ func NewAnthropic(o AnthropicOptions) *Anthropic {
 	if o.BaseURL != "" {
 		reqOpts = append(reqOpts, option.WithBaseURL(o.BaseURL))
 	}
-	if o.RefusalFallback && fallbackModels[o.Model] {
+	// Which models support it is decided by config (the built-in model table
+	// or llm.refusal_fallback), not here.
+	if o.RefusalFallback {
 		reqOpts = append(reqOpts,
 			option.WithHeaderAdd("anthropic-beta", "server-side-fallback-2026-07-01"),
 			option.WithJSONSet("fallbacks", "default"),
@@ -101,6 +95,9 @@ func (a *Anthropic) Chat(ctx context.Context, req *Request) (*Response, error) {
 
 	resp, err := a.client.Messages.New(ctx, params)
 	if err != nil {
+		if isNotFound(err) {
+			return nil, notFound(a.opts.Model, a.opts.Name, a.opts.BaseURL)
+		}
 		return nil, fmt.Errorf("anthropic: %w", err)
 	}
 

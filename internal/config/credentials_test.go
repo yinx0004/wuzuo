@@ -3,6 +3,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,13 +13,14 @@ import (
 
 func TestCredentialsSaveAndLoad(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "home", "credentials")
-	if err := SaveCredential(path, "WUZUO_TEST_KEY_A", "sk-one"); err != nil {
+	first, second, dsn := fakeSecret("api-key"), fakeSecret("api-key"), "u:"+fakeSecret("db-password")+"@tcp(h:3306)/"
+	if err := SaveCredential(path, "WUZUO_TEST_KEY_A", first); err != nil {
 		t.Fatal(err)
 	}
-	if err := SaveCredential(path, "WUZUO_TEST_DSN_B", "u:p@tcp(h:3306)/"); err != nil {
+	if err := SaveCredential(path, "WUZUO_TEST_DSN_B", dsn); err != nil {
 		t.Fatal(err)
 	}
-	if err := SaveCredential(path, "WUZUO_TEST_KEY_A", "sk-two"); err != nil { // replace
+	if err := SaveCredential(path, "WUZUO_TEST_KEY_A", second); err != nil { // replace
 		t.Fatal(err)
 	}
 	if st, _ := os.Stat(path); st.Mode().Perm() != 0o600 {
@@ -34,7 +37,7 @@ func TestCredentialsSaveAndLoad(t *testing.T) {
 	if err != nil || warning != "" {
 		t.Fatalf("%v %q", err, warning)
 	}
-	if len(loaded) != 1 || loaded[0] != "WUZUO_TEST_KEY_A" || os.Getenv("WUZUO_TEST_KEY_A") != "sk-two" || os.Getenv("WUZUO_TEST_DSN_B") != "from-env" {
+	if len(loaded) != 1 || loaded[0] != "WUZUO_TEST_KEY_A" || os.Getenv("WUZUO_TEST_KEY_A") != second || os.Getenv("WUZUO_TEST_DSN_B") != "from-env" {
 		t.Fatalf("loaded=%v a=%q b=%q", loaded, os.Getenv("WUZUO_TEST_KEY_A"), os.Getenv("WUZUO_TEST_DSN_B"))
 	}
 }
@@ -74,10 +77,18 @@ func TestCredentialsRejectBadInput(t *testing.T) {
 }
 
 func TestMask(t *testing.T) {
-	if got := Mask("sk-ant-api03-abcdefghijkl"); got != "sk-ant…ijkl" {
+	if got := Mask("abcdef-0123456789-wxyz"); got != "abcdef…wxyz" {
 		t.Errorf("Mask = %q", got)
 	}
 	if got := Mask("short"); got != "*****" {
 		t.Errorf("Mask short = %q", got)
 	}
+}
+
+// fakeSecret returns a random value that is obviously not a real credential,
+// so tests carry no secret-looking literals.
+func fakeSecret(label string) string {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return "fake-" + label + "-" + hex.EncodeToString(b)
 }

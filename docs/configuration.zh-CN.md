@@ -78,7 +78,7 @@ wuzuo case replay 20261101-0556 -m deepseek     # 换一个模型复验
 wuzuo models                                    # 列出所有名字，以及哪些 key 已经设置
 ```
 
-内置短名（每个短名同时确定服务商和模型）：
+内置短名（每个短名同时确定服务商和模型）。这张表由测试检查，保证和代码一致：
 
 | 短名 | 服务商 | 模型 |
 |---|---|---|
@@ -91,7 +91,28 @@ wuzuo models                                    # 列出所有名字，以及哪
 | `qwen` | qwen | `qwen-plus` |
 | `qwen-max` | qwen | `qwen-max` |
 
-内置短名会跟随最新一代模型，后续版本可能指向更新的模型。每个案件都会记录实际使用的完整模型 ID。
+内置短名在每个 WuZuo 版本里是固定的，指向发版时的最新一代模型。每个案件都会记录实际使用的完整模型 ID。
+
+### 检查有没有更新的模型
+
+```bash
+wuzuo models fetch          # 每家默认显示最新的 20 个；加 --all 显示全部
+```
+
+`fetch` 用你自己的 key，向每家已设置 key 的服务商（以及每个带自己 `base_url` 的别名）查询当前可用的模型。它会标出短名指向的模型，提示同一系列里更新的模型，并报告短名指向的模型已经不在列表里的情况：
+
+```text
+anthropic (ANTHROPIC_API_KEY)
+  claude-opus-6      2026-12-01  newer than "opus" (claude-opus-5-5)
+  claude-opus-5-5    2026-09-10  ← opus
+  ...
+  ! "fable" → claude-fable-5-1 is not in this list (retired, renamed, or not enabled for this key)
+  To try it:   wuzuo ask -m anthropic/claude-opus-6 "..."
+  To switch "opus" to it, add to the config:
+    models: { opus: { provider: anthropic, model: claude-opus-6 } }
+```
+
+它不会修改任何东西，换不换模型由你决定。WuZuo 不会自己去检查新模型，平时运行不会多出任何网络请求。如果配置的模型已经下线，`wuzuo ask` 会报 `model "…" is not offered by …` 并提示运行 `fetch`。
 
 模型名还可以是：
 
@@ -144,12 +165,12 @@ Save "sonnet" as the default model in /home/you/.wuzuo/config.yaml? [Y/n]
 
 ### 服务商和 key
 
-| 顺序 | 服务商 | key 变量 | 接口地址 | 默认模型 |
+| 顺序 | 服务商 | key 变量 | 接口地址 | 默认模型（短名） |
 |---|---|---|---|---|
-| 1 | `anthropic` | `ANTHROPIC_API_KEY` 或 `ANTHROPIC_AUTH_TOKEN` | 官方 API，或 `ANTHROPIC_BASE_URL` | `claude-opus-5-5` |
+| 1 | `anthropic` | `ANTHROPIC_API_KEY` 或 `ANTHROPIC_AUTH_TOKEN` | 官方 API，或 `ANTHROPIC_BASE_URL` | `opus` |
 | 2 | `openai` | `OPENAI_API_KEY` | OpenAI，或 `OPENAI_BASE_URL` | 无：设置 `OPENAI_MODEL` 或用 `openai/<ID>` |
-| 3 | `deepseek` | `DEEPSEEK_API_KEY` | `https://api.deepseek.com` | `deepseek-chat` |
-| 4 | `qwen`（通义千问） | `DASHSCOPE_API_KEY` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
+| 3 | `deepseek` | `DEEPSEEK_API_KEY` | `https://api.deepseek.com` | `deepseek` |
+| 4 | `qwen`（通义千问） | `DASHSCOPE_API_KEY` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen` |
 | 5 | `ark`（豆包 / 火山方舟） | `ARK_API_KEY` | `https://ark.cn-beijing.volces.com/api/v3` | 无：设置 `ARK_MODEL`、用 `ark/<ID>` 或定义别名 |
 
 `deepseek`、`qwen`、`ark` 都是 OpenAI 兼容接口的预设。其他兼容 Chat Completions 接口的服务（Ollama、vLLM、LiteLLM、Bifrost、公司内部网关）用 `openai` 加 `base_url` 即可接入，最好再定义一个别名。
@@ -234,7 +255,7 @@ safety:
 | `llm.api_key_env` | 字符串 | 服务商自己的变量 | 存放 key 的环境变量名 |
 | `llm.effort` | 字符串 | `high` | 推理深度，只对 Anthropic 生效：`low`、`medium`、`high`、`xhigh`、`max` |
 | `llm.max_steps` | 整数 | `40` | 每次调查最多让模型跑几轮 |
-| `llm.refusal_fallback` | 布尔 | `true` | 只对 Anthropic 官方 API 生效：模型拒答时由 API 换用备用模型重试，而不是让案件失败。使用自定义 `base_url` 网关时不启用 |
+| `llm.refusal_fallback` | 布尔 | 不设置（自动） | 只对 Anthropic 官方 API 生效：模型拒答时由 API 换用备用模型重试，而不是让案件失败。不设置时：内置模型中已知支持该功能的自动打开，其他模型一律关闭；设为 `true` 可以对你确认支持的模型强制打开，设为 `false` 关闭。使用自定义 `base_url` 网关时不启用。 |
 | `models.<名字>.provider` | 字符串 | 必填 | 别名对应的服务商 |
 | `models.<名字>.model` | 字符串 | 必填 | 别名对应的模型 ID |
 | `models.<名字>.base_url` | 字符串 | 服务商默认 | 该别名使用的接口地址 |
@@ -284,6 +305,7 @@ wuzuo toolset run mysql_overview   # 手动执行一个探针
 | `no LLM API key found` | 按提示导出其中一个 key 变量 |
 | `model "opus" (anthropic) needs an API key` | 配置的模型对应的 key 没有设置；导出它，或用 `-m` 换一个模型 |
 | `provider openai: no model selected` | 用 `-m openai/<ID>`、设置 `OPENAI_MODEL`（ark 用 `ARK_MODEL`），或定义别名 |
+| `"…" is not offered by …` | 模型已下线、改名，或你的 key 没有开通。运行 `wuzuo models fetch` 查看 |
 | `provider deepseek: set DEEPSEEK_API_KEY` | 选中的名字属于一个还没设置 key 的服务商，用 `wuzuo models` 查看 |
 | `api_key_env: environment variable X is not set` | 导出别名或 `llm.api_key_env` 指定的变量 |
 | `target "x": environment variable Y is not set` | 导出 `dsn_env` 指定的变量，或把它写进 credentials 文件 |

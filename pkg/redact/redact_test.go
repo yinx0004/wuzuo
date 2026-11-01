@@ -2,7 +2,12 @@
 
 package redact
 
-import "testing"
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"strings"
+	"testing"
+)
 
 func TestSQL(t *testing.T) {
 	cases := []struct{ in, want string }{
@@ -20,16 +25,25 @@ func TestSQL(t *testing.T) {
 }
 
 func TestSecrets(t *testing.T) {
+	// Built at runtime so the source holds no secret-looking literals.
+	secret := fakeSecret()
 	cases := []struct{ in, want string }{
-		{"CREATE USER u IDENTIFIED BY 'hunter2'", "CREATE USER u IDENTIFIED BY '<redacted>'"},
-		{"password=hunter2 host=db", "password=<redacted> host=db"},
-		{"mongodb://admin:s3cr3t@db:27017/x", "mongodb://admin:<redacted>@db:27017/x"},
-		{"root:pw@tcp(127.0.0.1:3306)/", "root:<redacted>@tcp(127.0.0.1:3306)/"},
-		{"Authorization: Bearer abcdefghijklmnop", "Authorization: Bearer <redacted>"},
+		{"CREATE USER u IDENTIFIED BY '" + secret + "'", "CREATE USER u IDENTIFIED BY '<redacted>'"},
+		{"password=" + secret + " host=db", "password=<redacted> host=db"},
+		{"mongodb://admin:" + secret + "@db:27017/x", "mongodb://admin:<redacted>@db:27017/x"},
+		{"root:" + secret + "@tcp(127.0.0.1:3306)/", "root:<redacted>@tcp(127.0.0.1:3306)/"},
+		{"Authorization: Bearer " + secret, "Authorization: Bearer <redacted>"},
 	}
 	for _, c := range cases {
-		if got := Secrets(c.in); got != c.want {
+		got := Secrets(c.in)
+		if got != c.want || strings.Contains(got, secret) {
 			t.Errorf("Secrets(%q)\n got  %q\n want %q", c.in, got, c.want)
 		}
 	}
+}
+
+func fakeSecret() string {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return "fake" + hex.EncodeToString(b)
 }
