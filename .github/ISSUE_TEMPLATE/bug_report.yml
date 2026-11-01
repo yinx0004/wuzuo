@@ -1,0 +1,26 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Include the command you ran and the output. Remove credentials, hostnames and query text you consider sensitive.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: version
+    attributes:
+      label: wuzuo --version
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Database and LLM
+      placeholder: MySQL 8.0.36, anthropic/claude-opus-5-5

@@ -1,0 +1,34 @@
+# WuZuo crime-scene lab: a disposable MySQL with a seeded "shop" schema and
+# scripts that reproduce common incidents. Never point these scripts at a real
+# server.
+#
+#   make lab-up                        # generate passwords, start and seed
+#   deploy/lab/scenarios/lock-wait.sh  # stage an incident
+#   eval "$(make -s lab-env)" && wuzuo ask "orders updates are hanging" -t lab
+#   make lab-down
+#
+# Passwords are random per checkout and live only in deploy/lab/.env
+# (gitignored), which `make lab-up` creates.
+
+services:
+  mysql:
+    image: mysql:${LAB_MYSQL_VERSION:-8.4}
+    container_name: wuzuo-lab-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${LAB_ROOT_PASSWORD:?run make lab-up to generate deploy/lab/.env}
+      LAB_WUZUO_PASSWORD: ${LAB_WUZUO_PASSWORD:?run make lab-up to generate deploy/lab/.env}
+      LAB_APP_PASSWORD: ${LAB_APP_PASSWORD:?run make lab-up to generate deploy/lab/.env}
+    command:
+      - --performance-schema-consumer-events-statements-history=ON
+      - --innodb-lock-wait-timeout=300
+      - --max-connections=60
+    ports:
+      - "127.0.0.1:13306:3306"
+    volumes:
+      - ./mysql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Healthy only once the init scripts have created the WuZuo account.
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysql -h 127.0.0.1 -uroot -N -e \"SELECT 1 FROM mysql.user WHERE user = 'wuzuo'\" | grep -q 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 60

@@ -1,0 +1,45 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - bodyclose
+    - errorlint
+    - gocritic
+    - goheader
+    - gosec
+    - misspell
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+  settings:
+    goheader:
+      template: "SPDX-License-Identifier: Apache-2.0"
+    gosec:
+      excludes:
+        - G202 # SQL string concatenation: identifiers are validated, values are parameterized
+        - G204 # subprocess with variable: not used for untrusted input
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters: [gosec, unparam]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/yinx0004/wuzuo

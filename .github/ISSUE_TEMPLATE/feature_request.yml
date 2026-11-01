@@ -1,0 +1,15 @@
+name: Feature request
+description: A new probe, toolset, integration or improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The incident or workflow this would help with
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: For new probes, list the queries or APIs and the privileges they need.
