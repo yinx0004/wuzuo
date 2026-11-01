@@ -2,6 +2,13 @@
 
 Thanks for helping! Issues and pull requests are welcome in English or Chinese.
 
+## Proposing work
+
+Planned work is tracked as issues with `priority/P0`–`priority/P3` and `area/*` labels.
+Features labelled `needs-design` are discussed in their issue first: the design and its
+open decisions are agreed there, the label is removed, and only then is the feature
+implemented. Small fixes can go straight to a pull request.
+
 ## Development setup
 
 Requirements: Go (see `go.mod`), Docker, and optionally [golangci-lint](https://golangci-lint.run/) v2.

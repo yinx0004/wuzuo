@@ -100,9 +100,11 @@ make lab-destroy                           # 彻底删除靶场
 
 ## 路线图
 
-- **v0.1**：MySQL 工具集、证物袋、尸格、案件复验、故障靶场
-- **v0.2**：MongoDB 工具集、MCP 工具集、Runbook、对接 Alertmanager 自动调查
-- **v0.3**：时间线重建、HTTP 服务、飞书 / Slack 机器人、基于靶场场景的评测
+- **[v0.1.0](https://github.com/yinx0004/wuzuo/milestone/1)**：MySQL 工具集，并用靶场故障场景做评测
+- **[v0.2.0](https://github.com/yinx0004/wuzuo/milestone/2)**：MongoDB 工具集，扩展 MySQL 的覆盖面
+- 之后：Prometheus 等数据源、HTTP 服务、飞书 / Slack 机器人、对接告警自动调查
+
+所有计划都记录在 [issues](https://github.com/yinx0004/wuzuo/issues) 里，用 `priority/P0` 到 `priority/P3` 标注优先级。
 
 ## 参与贡献
 
