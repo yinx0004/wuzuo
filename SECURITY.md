@@ -1,0 +1,28 @@
+# Security Policy
+
+WuZuo connects to production systems and sends diagnostic data to an LLM provider.
+
+## Reporting a vulnerability
+
+Please **do not open a public issue**. Report privately via
+[GitHub Security Advisories](https://github.com/yinx0004/wuzuo/security/advisories/new).
+We aim to acknowledge within 3 working days.
+
+We are most interested in:
+
+- any way for a probe or model output to modify a target system;
+- bypasses of the read-only SQL guard (`toolsets/mysql/guard.go`);
+- sensitive data (credentials, literal values, row data) reaching the model or the
+  evidence locker despite redaction;
+- tampering with sealed evidence going undetected.
+
+## What WuZuo sends to the model
+
+The complaint you type, target names and descriptions, and redacted probe output. Probe
+output contains server metadata such as hostnames, user names, schema and table names,
+and normalized SQL. Review your LLM provider's data policy. For sensitive environments,
+use a self-hosted model through an OpenAI-compatible endpoint.
+
+## Supported versions
+
+Security fixes go into the latest release.

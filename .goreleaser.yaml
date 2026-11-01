@@ -1,0 +1,57 @@
+version: 2
+
+project_name: wuzuo
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: wuzuo
+    main: ./cmd/wuzuo
+    binary: wuzuo
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w
+      - -X github.com/yinx0004/wuzuo/internal/version.Version={{ .Version }}
+      - -X github.com/yinx0004/wuzuo/internal/version.Commit={{ .ShortCommit }}
+      - -X github.com/yinx0004/wuzuo/internal/version.Date={{ .Date }}
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [LICENSE, NOTICE, README.md, README.zh-CN.md, docs/*]
+
+checksum:
+  name_template: checksums.txt
+
+dockers_v2:
+  - images:
+      - ghcr.io/yinx0004/wuzuo
+    tags:
+      - "{{ .Version }}"
+      - latest
+    platforms: [linux/amd64, linux/arm64]
+    labels:
+      org.opencontainers.image.source: https://github.com/yinx0004/wuzuo
+      org.opencontainers.image.licenses: Apache-2.0
+
+changelog:
+  use: github
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
+  filters:
+    exclude: ['^docs:', '^test:', '^chore:', '^ci:']
