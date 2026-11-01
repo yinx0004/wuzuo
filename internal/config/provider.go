@@ -19,37 +19,45 @@ const (
 
 // Preset describes a provider WuZuo can detect from the environment.
 type Preset struct {
-	Name         string
-	Kind         string
-	KeyEnvs      []string // first non-empty wins
-	BaseURL      string
-	BaseURLEnv   string
-	DefaultModel string // empty means the user must choose one
+	Name       string
+	Kind       string
+	KeyEnvs    []string // first non-empty wins
+	BaseURL    string
+	BaseURLEnv string
+	// DefaultAlias names the built-in model used when only the provider is
+	// known. Empty means the user must choose a model.
+	DefaultAlias string
 	ModelEnv     string
 }
 
 // Presets in detection order.
 var Presets = []Preset{
-	{Name: "anthropic", Kind: KindAnthropic, KeyEnvs: []string{"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"}, BaseURLEnv: "ANTHROPIC_BASE_URL", DefaultModel: "claude-opus-5-5"},
+	{Name: "anthropic", Kind: KindAnthropic, KeyEnvs: []string{"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"}, BaseURLEnv: "ANTHROPIC_BASE_URL", DefaultAlias: "opus"},
 	{Name: "openai", Kind: KindOpenAI, KeyEnvs: []string{"OPENAI_API_KEY"}, BaseURLEnv: "OPENAI_BASE_URL", ModelEnv: "OPENAI_MODEL"},
-	{Name: "deepseek", Kind: KindOpenAI, KeyEnvs: []string{"DEEPSEEK_API_KEY"}, BaseURL: "https://api.deepseek.com", DefaultModel: "deepseek-chat"},
-	{Name: "qwen", Kind: KindOpenAI, KeyEnvs: []string{"DASHSCOPE_API_KEY"}, BaseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", DefaultModel: "qwen-plus"},
+	{Name: "deepseek", Kind: KindOpenAI, KeyEnvs: []string{"DEEPSEEK_API_KEY"}, BaseURL: "https://api.deepseek.com", DefaultAlias: "deepseek"},
+	{Name: "qwen", Kind: KindOpenAI, KeyEnvs: []string{"DASHSCOPE_API_KEY"}, BaseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", DefaultAlias: "qwen"},
 	{Name: "ark", Kind: KindOpenAI, KeyEnvs: []string{"ARK_API_KEY"}, BaseURL: "https://ark.cn-beijing.volces.com/api/v3", ModelEnv: "ARK_MODEL"},
 }
 
-// BuiltinModel is a short name for a provider + model pair.
+// BuiltinModel is a short name for a provider + model pair, with what WuZuo
+// knows about the model.
 type BuiltinModel struct {
 	Name, Provider, Model, Description string
+	// RefusalFallback: the Anthropic API accepts `fallbacks: "default"` for
+	// this model, re-serving a declined request on a fallback model.
+	RefusalFallback bool
 }
 
-// BuiltinModels are the short names WuZuo ships with. They follow the current
-// generation of each family and are updated with releases; cases record the
-// full model ID they resolved to.
+// BuiltinModels is the only place in the code that names model IDs. Presets
+// refer to it by name, and per-model behaviour is read from its fields. To
+// move a short name to a newer model, change its row here and the tables in
+// docs/configuration*.md (TestDocsListBuiltinModels checks they match); see
+// CONTRIBUTING.md. Cases record the full model ID they resolved to.
 var BuiltinModels = []BuiltinModel{
-	{Name: "opus", Provider: "anthropic", Model: "claude-opus-5-5", Description: "Claude Opus, strongest default"},
-	{Name: "sonnet", Provider: "anthropic", Model: "claude-sonnet-5-5", Description: "Claude Sonnet, faster and cheaper"},
+	{Name: "opus", Provider: "anthropic", Model: "claude-opus-5-5", Description: "Claude Opus, strongest default", RefusalFallback: true},
+	{Name: "sonnet", Provider: "anthropic", Model: "claude-sonnet-5-5", Description: "Claude Sonnet, faster and cheaper", RefusalFallback: true},
 	{Name: "haiku", Provider: "anthropic", Model: "claude-haiku-5-5", Description: "Claude Haiku, fastest"},
-	{Name: "fable", Provider: "anthropic", Model: "claude-fable-5-1", Description: "Claude Fable, most capable"},
+	{Name: "fable", Provider: "anthropic", Model: "claude-fable-5-1", Description: "Claude Fable, most capable", RefusalFallback: true},
 	{Name: "deepseek", Provider: "deepseek", Model: "deepseek-chat", Description: "DeepSeek chat"},
 	{Name: "deepseek-r", Provider: "deepseek", Model: "deepseek-reasoner", Description: "DeepSeek reasoner"},
 	{Name: "qwen", Provider: "qwen", Model: "qwen-plus", Description: "Qwen Plus"},
@@ -96,7 +104,17 @@ func (c *Config) ModelChosen(override string, getenv func(string) string) bool {
 // carry their provider; otherwise the provider comes from $WUZUO_PROVIDER,
 // llm.provider, or the environment, in that order.
 func (c *Config) ResolveModel(override string, getenv func(string) string) (*ResolvedLLM, error) {
-	name := firstNonEmpty(override, getenv("WUZUO_MODEL"), c.LLM.Model)
+	return c.resolve(firstNonEmpty(override, getenv("WUZUO_MODEL"), c.LLM.Model), true, getenv)
+}
+
+// ResolveEndpoint resolves the endpoint and key for name (a provider or a
+// model alias) without requiring a model to be chosen. It is used to list the
+// models an endpoint offers.
+func (c *Config) ResolveEndpoint(name string, getenv func(string) string) (*ResolvedLLM, error) {
+	return c.resolve(name, false, getenv)
+}
+
+func (c *Config) resolve(name string, requireModel bool, getenv func(string) string) (*ResolvedLLM, error) {
 	provider := strings.ToLower(firstNonEmpty(getenv("WUZUO_PROVIDER"), c.LLM.Provider))
 	model, baseURL, apiKeyEnv := "", "", ""
 	source := ""
@@ -152,12 +170,11 @@ func (c *Config) ResolveModel(override string, getenv func(string) string) (*Res
 	}
 
 	r := &ResolvedLLM{
-		Name:            name,
-		Preset:          p.Name,
-		Kind:            p.Kind,
-		Effort:          c.LLM.Effort,
-		RefusalFallback: c.LLM.RefusalFallback == nil || *c.LLM.RefusalFallback,
-		Source:          source,
+		Name:   name,
+		Preset: p.Name,
+		Kind:   p.Kind,
+		Effort: c.LLM.Effort,
+		Source: source,
 	}
 	if apiKeyEnv != "" {
 		r.APIKey = getenv(apiKeyEnv)
@@ -188,9 +205,14 @@ func (c *Config) ResolveModel(override string, getenv func(string) string) (*Res
 		r.Model = getenv(p.ModelEnv)
 	}
 	if r.Model == "" {
-		r.Model = p.DefaultModel
+		r.Model = p.defaultModel()
 	}
-	if r.Model == "" {
+	if c.LLM.RefusalFallback != nil {
+		r.RefusalFallback = *c.LLM.RefusalFallback
+	} else {
+		r.RefusalFallback = SupportsRefusalFallback(p.Name, r.Model)
+	}
+	if r.Model == "" && requireModel {
 		hint := "-m <provider>/<model>, WUZUO_MODEL"
 		if p.ModelEnv != "" {
 			hint += " or " + p.ModelEnv
@@ -268,7 +290,7 @@ func (c *Config) DefaultChoice(getenv func(string) string) (Choice, bool) {
 	choices := c.Choices(getenv)
 	for _, p := range Presets {
 		for _, ch := range choices {
-			if ch.Available && ch.Provider == p.Name && (ch.Source == "env" || ch.Model == p.DefaultModel) {
+			if ch.Available && ch.Provider == p.Name && (ch.Source == "env" || ch.Model == p.defaultModel()) {
 				return ch, true
 			}
 		}
@@ -300,6 +322,25 @@ func keyStatus(provider string, getenv func(string) string) (string, bool) {
 		return n, true
 	}
 	return p.KeyEnvs[0], false
+}
+
+// defaultModel is the model ID of the preset's default alias, or "".
+func (p *Preset) defaultModel() string {
+	if b := builtin(p.DefaultAlias); b != nil {
+		return b.Model
+	}
+	return ""
+}
+
+// SupportsRefusalFallback reports whether model (a full ID) is a built-in
+// model known to accept server-side refusal fallback.
+func SupportsRefusalFallback(provider, model string) bool {
+	for _, b := range BuiltinModels {
+		if b.Provider == provider && b.Model == model {
+			return b.RefusalFallback
+		}
+	}
+	return false
 }
 
 func builtin(name string) *BuiltinModel {

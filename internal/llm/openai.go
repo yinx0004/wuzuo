@@ -69,6 +69,9 @@ func (p *OpenAI) Chat(ctx context.Context, req *Request) (*Response, error) {
 
 	resp, err := p.client.Chat.Completions.New(ctx, params)
 	if err != nil {
+		if isNotFound(err) {
+			return nil, notFound(p.opts.Model, p.opts.Name, p.opts.BaseURL)
+		}
 		return nil, fmt.Errorf("%s: %w", p.opts.Name, err)
 	}
 	if len(resp.Choices) == 0 {

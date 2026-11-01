@@ -108,7 +108,8 @@ wuzuo case replay 20261101-0556 -m deepseek     # re-examine with another model
 wuzuo models                                    # list names and which keys are set
 ```
 
-Built-in names (each one fixes both the provider and the model):
+Built-in names (each one fixes both the provider and the model). This table is checked
+against the code by a test:
 
 | Name | Provider | Model |
 |---|---|---|
@@ -121,8 +122,34 @@ Built-in names (each one fixes both the provider and the model):
 | `qwen` | qwen | `qwen-plus` |
 | `qwen-max` | qwen | `qwen-max` |
 
-Built-in names follow the current generation and may move to newer models in later
-releases. Each case records the full model ID it actually used.
+Built-in names are fixed in each WuZuo release and follow the current generation at
+release time. Each case records the full model ID it actually used.
+
+### Checking for newer models
+
+```bash
+wuzuo models fetch          # newest 20 per provider; --all for everything
+```
+
+`fetch` asks each provider whose key is set (and each alias with its own `base_url`) for
+the models it offers right now, using your own key. It marks the models that short names
+point to, flags newer models in the same family, and reports a short name whose model is
+no longer listed:
+
+```text
+anthropic (ANTHROPIC_API_KEY)
+  claude-opus-6      2026-12-01  newer than "opus" (claude-opus-5-5)
+  claude-opus-5-5    2026-09-10  ← opus
+  ...
+  ! "fable" → claude-fable-5-1 is not in this list (retired, renamed, or not enabled for this key)
+  To try it:   wuzuo ask -m anthropic/claude-opus-6 "..."
+  To switch "opus" to it, add to the config:
+    models: { opus: { provider: anthropic, model: claude-opus-6 } }
+```
+
+It changes nothing; switching models is your decision. WuZuo never checks for models on
+its own, so normal runs make no extra network calls. If a configured model has been
+retired, `wuzuo ask` stops with `model "…" is not offered by …` and points to `fetch`.
 
 A model name can also be:
 
@@ -186,12 +213,12 @@ Save "sonnet" as the default model in /home/you/.wuzuo/config.yaml? [Y/n]
 
 ### Providers and keys
 
-| Order | Provider | Key variable | Endpoint | Default model |
+| Order | Provider | Key variable | Endpoint | Default model (short name) |
 |---|---|---|---|---|
-| 1 | `anthropic` | `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` | Anthropic API, or `ANTHROPIC_BASE_URL` | `claude-opus-5-5` |
+| 1 | `anthropic` | `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` | Anthropic API, or `ANTHROPIC_BASE_URL` | `opus` |
 | 2 | `openai` | `OPENAI_API_KEY` | OpenAI, or `OPENAI_BASE_URL` | none: set `OPENAI_MODEL` or use `openai/<id>` |
-| 3 | `deepseek` | `DEEPSEEK_API_KEY` | `https://api.deepseek.com` | `deepseek-chat` |
-| 4 | `qwen` | `DASHSCOPE_API_KEY` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen-plus` |
+| 3 | `deepseek` | `DEEPSEEK_API_KEY` | `https://api.deepseek.com` | `deepseek` |
+| 4 | `qwen` | `DASHSCOPE_API_KEY` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `qwen` |
 | 5 | `ark` | `ARK_API_KEY` | `https://ark.cn-beijing.volces.com/api/v3` | none: set `ARK_MODEL`, use `ark/<id>`, or an alias |
 
 `deepseek`, `qwen` and `ark` are presets of the OpenAI-compatible provider. Anything else
@@ -291,7 +318,7 @@ safety:
 | `llm.api_key_env` | string | provider's variables | Name of the environment variable holding the key |
 | `llm.effort` | string | `high` | Reasoning depth, Anthropic only: `low`, `medium`, `high`, `xhigh`, `max` |
 | `llm.max_steps` | int | `40` | Maximum model turns per investigation |
-| `llm.refusal_fallback` | bool | `true` | Anthropic API only: when the model declines a request, the API retries it on a fallback model instead of failing the case. Not applied through custom `base_url` gateways. |
+| `llm.refusal_fallback` | bool | unset (automatic) | Anthropic API only: when the model declines a request, the API retries it on a fallback model instead of failing the case. Unset: on for built-in models known to support it, off for any other model. `true` forces it on for a model you know supports it; `false` turns it off. Not applied through custom `base_url` gateways. |
 | `models.<name>.provider` | string | required | Provider of the alias |
 | `models.<name>.model` | string | required | Model ID the alias stands for |
 | `models.<name>.base_url` | string | provider default | Endpoint for this alias |
@@ -341,6 +368,7 @@ wuzuo toolset run mysql_overview   # run one probe by hand
 | `no LLM API key found` | Export one of the key variables listed in the message |
 | `model "opus" (anthropic) needs an API key` | The configured model's key is not set; export it, or pick another model with `-m` |
 | `provider openai: no model selected` | Use `-m openai/<id>`, set `OPENAI_MODEL` (`ARK_MODEL` for ark), or define an alias |
+| `"…" is not offered by …` | The model was retired, renamed, or is not enabled for your key. Run `wuzuo models fetch` |
 | `provider deepseek: set DEEPSEEK_API_KEY` | The chosen name belongs to a provider whose key is not set; see `wuzuo models` |
 | `api_key_env: environment variable X is not set` | Export the variable named in the alias or in `llm.api_key_env` |
 | `target "x": environment variable Y is not set` | Export the DSN variable named in `dsn_env`, or add it to the credentials file |

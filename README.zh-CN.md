@@ -29,12 +29,12 @@ go install github.com/yinx0004/wuzuo/cmd/wuzuo@latest
 
 **选择模型**：WuZuo 会从环境变量自动识别，设置以下任意一组即可，不需要写配置。
 
-| 环境变量 | 模型服务 | 默认模型 |
+| 环境变量 | 模型服务 | 默认模型（[短名](docs/configuration.zh-CN.md#短名)） |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Anthropic Claude（原生 API） | `claude-opus-5-5` |
+| `ANTHROPIC_API_KEY` | Anthropic Claude（原生 API） | `opus` |
 | `OPENAI_API_KEY` + `OPENAI_MODEL`（+ `OPENAI_BASE_URL`） | OpenAI 或任意兼容接口：Ollama、vLLM、LiteLLM、Bifrost… | — |
-| `DEEPSEEK_API_KEY` | DeepSeek | `deepseek-chat` |
-| `DASHSCOPE_API_KEY` | 通义千问 | `qwen-plus` |
+| `DEEPSEEK_API_KEY` | DeepSeek | `deepseek` |
+| `DASHSCOPE_API_KEY` | 通义千问 | `qwen` |
 | `ARK_API_KEY` + `ARK_MODEL` | 豆包（火山方舟） | — |
 
 用短名选择模型：`-m opus`、`-m sonnet`、`-m deepseek`、`-m qwen`，或者 `-m 服务商/模型ID`；`wuzuo models` 会列出所有名字。如果什么都没配置，`wuzuo ask` 会列出已设置 key 的模型让你选择，并询问是否保存。
@@ -74,6 +74,7 @@ make lab-destroy                           # 彻底删除靶场
 | `wuzuo case list \| show <id>` | 浏览历史案件（支持 ID 前缀） |
 | `wuzuo case replay <id>` | 用封存的证物重新验尸，例如换一个模型：`-m sonnet` |
 | `wuzuo models` | 列出 `-m` 可用的模型短名，以及哪些 key 已设置 |
+| `wuzuo models fetch` | 向各服务商查询当前可用的模型，提示更新的和已下线的 |
 | `wuzuo toolset list \| check` | 列出探针、检查前置条件 |
 | `wuzuo toolset run <探针> [json]` | 手动执行单个探针 |
 | `wuzuo init` | 首次设置：选择模型、添加目标、生成 `~/.wuzuo/config.yaml` |

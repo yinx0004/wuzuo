@@ -35,6 +35,22 @@ Probes live in `toolsets/<name>/` and implement `pkg/toolset.Tool`. A good probe
 Implement `pkg/toolset.Toolset`, add a target type in `internal/config`, wire it in
 `internal/cli/toolsets.go`, and add a lab under `lab`.
 
+## Updating a built-in model
+
+Model IDs appear in exactly one place in the code: `BuiltinModels` in
+`internal/config/provider.go`. Provider defaults refer to it by short name, and
+per-model behaviour (such as refusal fallback) is a field on its rows.
+
+1. Run `wuzuo models fetch` with the provider's key to confirm the new model ID and
+   that your key can use it.
+2. Change the row: `Model`, and `RefusalFallback` if the new model's support differs.
+3. Run `go test ./internal/config/`. `TestDocsListBuiltinModels` lists every line in
+   the README and `docs/configuration*.md` that still shows the old ID; update them.
+4. Use a `feat:` commit that names the short name and both IDs, so the release notes
+   tell users what changed.
+
+Tests elsewhere look IDs up from the table, so they do not need editing.
+
 ## Commits and pull requests
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`,

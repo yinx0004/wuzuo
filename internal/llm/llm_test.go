@@ -5,9 +5,11 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -137,5 +139,61 @@ func TestOpenAIWire(t *testing.T) {
 	fn := tools[0].(map[string]any)["function"].(map[string]any)
 	if fn["parameters"].(map[string]any)["type"] != "object" {
 		t.Errorf("parameters = %v", fn["parameters"])
+	}
+}
+
+func serve(t *testing.T, status int, body string) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = io.WriteString(w, body)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestAnthropicListModels(t *testing.T) {
+	srv := serve(t, 200, `{"data":[
+		{"type":"model","id":"claude-sonnet-5-5","display_name":"Claude Sonnet 5.5","created_at":"2026-09-10T00:00:00Z"},
+		{"type":"model","id":"claude-opus-6","display_name":"Claude Opus 6","created_at":"2026-12-01T00:00:00Z"}],
+		"has_more":false,"first_id":"claude-sonnet-5-5","last_id":"claude-opus-6"}`)
+	ms, err := NewAnthropic(AnthropicOptions{Model: "x", APIKey: "k", BaseURL: srv.URL}).ListModels(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ms) != 2 || ms[0].ID != "claude-opus-6" || ms[0].Created.Year() != 2026 || ms[1].Name != "Claude Sonnet 5.5" {
+		t.Fatalf("models (want newest first): %+v", ms)
+	}
+}
+
+func TestOpenAIListModels(t *testing.T) {
+	srv := serve(t, 200, `{"object":"list","data":[
+		{"id":"qwen3:32b","object":"model","created":0,"owned_by":"library"},
+		{"id":"deepseek-chat","object":"model","created":1767225600,"owned_by":"deepseek"}]}`)
+	ms, err := NewOpenAI(OpenAIOptions{Name: "openai", Model: "x", APIKey: "k", BaseURL: srv.URL}).ListModels(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ms) != 2 || ms[0].ID != "deepseek-chat" || !ms[1].Created.IsZero() {
+		t.Fatalf("models (dated first): %+v", ms)
+	}
+}
+
+func TestModelNotFoundIsExplained(t *testing.T) {
+	a := serve(t, 404, `{"type":"error","error":{"type":"not_found_error","message":"model: claude-old"}}`)
+	_, err := NewAnthropic(AnthropicOptions{Name: "anthropic", Model: "claude-old", APIKey: "k", BaseURL: a.URL}).Chat(context.Background(), &Request{Messages: []Message{{Role: RoleUser, Text: "hi"}}})
+	if !errors.Is(err, ErrModelNotFound) || !strings.Contains(err.Error(), `"claude-old" is not offered by anthropic`) || !strings.Contains(err.Error(), "wuzuo models fetch") {
+		t.Fatalf("anthropic: %v", err)
+	}
+	o := serve(t, 404, `{"error":{"message":"The model does not exist","type":"invalid_request_error","code":"model_not_found"}}`)
+	_, err = NewOpenAI(OpenAIOptions{Name: "deepseek", Model: "gone", APIKey: "k", BaseURL: o.URL}).Chat(context.Background(), &Request{Messages: []Message{{Role: RoleUser, Text: "hi"}}})
+	if !errors.Is(err, ErrModelNotFound) || !strings.Contains(err.Error(), `"gone" is not offered by deepseek at `+o.URL) {
+		t.Fatalf("openai: %v", err)
+	}
+	other := serve(t, 401, `{"type":"error","error":{"type":"authentication_error","message":"bad key"}}`)
+	_, err = NewAnthropic(AnthropicOptions{Model: "m", APIKey: "k", BaseURL: other.URL}).Chat(context.Background(), &Request{Messages: []Message{{Role: RoleUser, Text: "hi"}}})
+	if err == nil || errors.Is(err, ErrModelNotFound) {
+		t.Fatalf("401 must not look like a missing model: %v", err)
 	}
 }

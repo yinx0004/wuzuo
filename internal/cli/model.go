@@ -195,14 +195,15 @@ func completeModels(g *globalFlags) func(*cobra.Command, []string, string) ([]st
 }
 
 func newModelsCmd(g *globalFlags) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "models",
 		Short: "List model names usable with -m and in llm.model",
 		Long: `List the short model names WuZuo understands: built-in names, your own
 aliases from "models:" in the config, and models named by provider variables
 such as OPENAI_MODEL. "*" marks the model a run would use now.
 
-Any "provider/model-id" also works, e.g. -m openai/gpt-5 or -m ark/ep-xxxx.`,
+Any "provider/model-id" also works, e.g. -m openai/gpt-5 or -m ark/ep-xxxx.
+Use "wuzuo models fetch" to see which models each provider offers right now.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := g.load()
 			if err != nil {
@@ -247,4 +248,6 @@ Any "provider/model-id" also works, e.g. -m openai/gpt-5 or -m ark/ep-xxxx.`,
 			return nil
 		},
 	}
+	cmd.AddCommand(newModelsFetchCmd(g))
+	return cmd
 }

@@ -6,11 +6,16 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/yinx0004/wuzuo/internal/config"
 	"github.com/yinx0004/wuzuo/internal/llm"
@@ -46,7 +51,7 @@ func TestAskPersistsCaseAndReport(t *testing.T) {
 	t.Setenv("WUZUO_CONFIG", filepath.Join(home, "none.yaml"))
 	t.Setenv("WUZUO_MYSQL_DSN", "")
 	t.Setenv("WUZUO_PROVIDER", "anthropic")
-	t.Setenv("ANTHROPIC_API_KEY", "test-key")
+	t.Setenv("ANTHROPIC_API_KEY", fakeSecret("api-key"))
 	fake := &oneShot{}
 	newProvider = func(*config.ResolvedLLM) (llm.Provider, error) { return fake, nil }
 	t.Cleanup(func() { newProvider = llm.New })
@@ -86,7 +91,7 @@ func setupInteractive(t *testing.T, answers string) (home string) {
 	for _, k := range []string{"ANTHROPIC_AUTH_TOKEN", "OPENAI_API_KEY", "DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY", "ARK_API_KEY"} {
 		t.Setenv(k, "")
 	}
-	t.Setenv("ANTHROPIC_API_KEY", "test-key")
+	t.Setenv("ANTHROPIC_API_KEY", fakeSecret("api-key"))
 	t.Setenv("ANTHROPIC_BASE_URL", "")
 	interactive = func() bool { return true }
 	promptInput = strings.NewReader(answers)
@@ -147,7 +152,7 @@ func TestAskModelFlagSkipsPrompt(t *testing.T) {
 	if err != nil || strings.Contains(errOut, "Choose a model") {
 		t.Fatalf("%v\n%s", err, errOut)
 	}
-	if !strings.Contains(errOut, "anthropic/claude-haiku-5-5") {
+	if !strings.Contains(errOut, "anthropic/"+modelID("haiku")) {
 		t.Errorf("header should show resolved model:\n%s", errOut)
 	}
 }
@@ -188,7 +193,7 @@ func TestModelsCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"opus", "✓ ANTHROPIC_API_KEY", "✗ DEEPSEEK_API_KEY", "* anthropic/claude-opus-5-5 (default"} {
+	for _, want := range []string{"opus", "✓ ANTHROPIC_API_KEY", "✗ DEEPSEEK_API_KEY", "* anthropic/" + modelID("opus") + " (default"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q:\n%s", want, out)
 		}
@@ -282,7 +287,9 @@ func TestAskWithoutKeyExplainsWhatToSet(t *testing.T) {
 func TestInitWizardSavesKeyAndDSN(t *testing.T) {
 	// default model, paste key, add target, name, no description,
 	// host, bad port, port, default user, password with special characters
-	home := setupInteractive(t, "\nsk-ant-test-0123456789\n\norders\n\n127.0.0.1\n99999\n1\n\np@ss/w:rd)\n")
+	key := fakeSecret("api-key")
+	password := fakeSecret("db-password") + "@/:)" // characters a DSN must escape correctly
+	home := setupInteractive(t, "\n"+key+"\n\norders\n\n127.0.0.1\n99999\n1\n\n"+password+"\n")
 	t.Setenv("ANTHROPIC_API_KEY", "")
 	t.Setenv("WUZUO_ORDERS_DSN", "")
 	_, errOut, err := run(t, "init")
@@ -291,7 +298,7 @@ func TestInitWizardSavesKeyAndDSN(t *testing.T) {
 	}
 	for _, want := range []string{
 		"Paste the API key for opus, saved as ANTHROPIC_API_KEY",
-		"Saved ANTHROPIC_API_KEY to " + filepath.Join(home, "credentials") + " (sk-ant…6789)",
+		"Saved ANTHROPIC_API_KEY to " + filepath.Join(home, "credentials") + " (" + config.Mask(key) + ")",
 		"Host or IP",
 		"Port [3306]",
 		"invalid: use a number from 1 to 65535",
@@ -307,7 +314,7 @@ func TestInitWizardSavesKeyAndDSN(t *testing.T) {
 			t.Errorf("missing %q:\n%s", want, errOut)
 		}
 	}
-	for _, secret := range []string{"sk-ant-test-0123456789", "p@ss/w:rd)"} {
+	for _, secret := range []string{key, password} {
 		if strings.Contains(errOut, secret) {
 			t.Errorf("secret %q echoed:\n%s", secret, errOut)
 		}
@@ -320,14 +327,14 @@ func TestInitWizardSavesKeyAndDSN(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(creds), "ANTHROPIC_API_KEY=sk-ant-test-0123456789") || !strings.Contains(string(creds), "WUZUO_ORDERS_DSN=wuzuo:p@ss/w:rd)@tcp(127.0.0.1:1)/") {
+	if !strings.Contains(string(creds), "ANTHROPIC_API_KEY="+key) || !strings.Contains(string(creds), "WUZUO_ORDERS_DSN=wuzuo:"+password+"@tcp(127.0.0.1:1)/") {
 		t.Fatalf("credentials:\n%s", creds)
 	}
 	if st, _ := os.Stat(filepath.Join(home, "credentials")); st.Mode().Perm() != 0o600 {
 		t.Errorf("credentials mode %v", st.Mode().Perm())
 	}
 	cfgText, _ := os.ReadFile(filepath.Join(home, "config.yaml"))
-	if strings.Contains(string(cfgText), "sk-ant") || strings.Contains(string(cfgText), "p@ss") {
+	if strings.Contains(string(cfgText), key) || strings.Contains(string(cfgText), password) {
 		t.Fatalf("secret leaked into config.yaml:\n%s", cfgText)
 	}
 
@@ -342,8 +349,9 @@ func TestInitWizardSavesKeyAndDSN(t *testing.T) {
 
 func TestAskMySQLConnectionIPv6AndSkip(t *testing.T) {
 	var out bytes.Buffer
-	dsn, summary, err := askMySQLConnection(bufio.NewReader(strings.NewReader("::1\n\nops\npw\n")), &out)
-	if err != nil || dsn != "ops:pw@tcp([::1]:3306)/" || summary != "ops@[::1]:3306" {
+	pw := fakeSecret("db-password")
+	dsn, summary, err := askMySQLConnection(bufio.NewReader(strings.NewReader("::1\n\nops\n"+pw+"\n")), &out)
+	if err != nil || dsn != "ops:"+pw+"@tcp([::1]:3306)/" || summary != "ops@[::1]:3306" {
 		t.Fatalf("dsn=%q summary=%q err=%v", dsn, summary, err)
 	}
 	dsn, _, err = askMySQLConnection(bufio.NewReader(strings.NewReader("\n")), &out)
@@ -357,19 +365,20 @@ func TestAskMySQLConnectionIPv6AndSkip(t *testing.T) {
 }
 
 func TestInitWizardReportsUpdatedFiles(t *testing.T) {
-	home := setupInteractive(t, "\nsk-ant-first-0123456789\nn\n")
+	first, second := fakeSecret("api-key"), fakeSecret("api-key")
+	home := setupInteractive(t, "\n"+first+"\nn\n")
 	t.Setenv("ANTHROPIC_API_KEY", "")
 	if _, _, err := run(t, "init"); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("ANTHROPIC_API_KEY", "")
-	promptInput = strings.NewReader("\ny\nsk-ant-second-0123456789\nn\n") // model, replace the saved key, new key, no target
+	promptInput = strings.NewReader("\ny\n" + second + "\nn\n") // model, replace the saved key, new key, no target
 	_, errOut, err := run(t, "init", "--force")
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		"ANTHROPIC_API_KEY is already saved in " + filepath.Join(home, "credentials") + " (sk-ant…6789). Replace it? [y/N]",
+		"ANTHROPIC_API_KEY is already saved in " + filepath.Join(home, "credentials") + " (" + config.Mask(first) + "). Replace it? [y/N]",
 		filepath.Join(home, "config.yaml") + "  overwritten: model opus",
 		filepath.Join(home, "credentials") + "  updated: ANTHROPIC_API_KEY",
 	} {
@@ -378,7 +387,92 @@ func TestInitWizardReportsUpdatedFiles(t *testing.T) {
 		}
 	}
 	creds, _ := os.ReadFile(filepath.Join(home, "credentials"))
-	if strings.Count(string(creds), "ANTHROPIC_API_KEY=") != 1 || !strings.Contains(string(creds), "sk-ant-second") {
+	if strings.Count(string(creds), "ANTHROPIC_API_KEY=") != 1 || !strings.Contains(string(creds), second) {
 		t.Fatalf("credentials:\n%s", creds)
 	}
+}
+
+func TestModelsFetch(t *testing.T) {
+	home := setupInteractive(t, "")
+	t.Setenv("DEEPSEEK_API_KEY", fakeSecret("api-key"))
+	t.Setenv("OLLAMA_KEY", fakeSecret("api-key"))
+	cfgPath := filepath.Join(home, "config.yaml")
+	if err := os.WriteFile(cfgPath, []byte("models:\n  local: { provider: openai, model: qwen3:32b, base_url: \"http://ollama:11434/v1\", api_key_env: OLLAMA_KEY }\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	day := func(s string) time.Time { d, _ := time.Parse("2006-01-02", s); return d }
+	opus := modelID("opus")
+	newerOpus, olderOpus := family(opus)+"-99", family(opus)+"-1" // same family, either side of opus
+	listModels = func(_ context.Context, r *config.ResolvedLLM) ([]llm.ModelInfo, error) {
+		switch {
+		case r.Preset == "anthropic":
+			return []llm.ModelInfo{
+				{ID: newerOpus, Created: day("2026-12-01")},
+				{ID: modelID("sonnet"), Created: day("2026-09-10")},
+				{ID: opus, Created: day("2026-09-10")},
+				{ID: modelID("haiku"), Created: day("2026-08-01")},
+				{ID: olderOpus, Created: day("2026-04-01")},
+			}, nil
+		case r.BaseURL == "http://ollama:11434/v1":
+			return []llm.ModelInfo{{ID: "qwen3:32b"}, {ID: "llama4"}}, nil
+		default:
+			return nil, errors.New("connection refused")
+		}
+	}
+	t.Cleanup(func() {
+		listModels = func(ctx context.Context, r *config.ResolvedLLM) ([]llm.ModelInfo, error) { return nil, nil }
+	})
+
+	out, _, err := run(t, "models", "fetch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"anthropic (ANTHROPIC_API_KEY)",
+		newerOpus + " 2026-12-01 newer than \"opus\" (" + opus + ")",
+		opus + " 2026-09-10 ← opus",
+		"! \"fable\" → " + modelID("fable") + " is not in this list",
+		"wuzuo ask -m anthropic/" + newerOpus,
+		"models: { opus: { provider: anthropic, model: " + newerOpus + " } }",
+		"deepseek (DEEPSEEK_API_KEY, https://api.deepseek.com)\n ✗ connection refused",
+		`openai, alias "local" (OLLAMA_KEY, http://ollama:11434/v1)`,
+		"qwen3:32b - ← local",
+	} {
+		if !strings.Contains(squeeze(out), want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+	if strings.Contains(squeeze(out), olderOpus+" 2026-04-01 newer") {
+		t.Errorf("older model flagged as newer:\n%s", out)
+	}
+}
+
+// modelID returns the model ID a built-in short name currently points to, so
+// tests keep passing when a built-in model is updated.
+func modelID(name string) string {
+	for _, b := range config.BuiltinModels {
+		if b.Name == name {
+			return b.Model
+		}
+	}
+	panic("no built-in model " + name)
+}
+
+// squeeze collapses runs of spaces, so assertions do not depend on column widths.
+func squeeze(s string) string { return regexp.MustCompile(` {2,}`).ReplaceAllString(s, " ") }
+
+func TestFamily(t *testing.T) {
+	for id, want := range map[string]string{"claude-opus-5-5": "claude-opus", "claude-opus-6": "claude-opus", "deepseek-chat": "deepseek-chat", "qwen-max": "qwen-max"} {
+		if got := family(id); got != want {
+			t.Errorf("family(%q) = %q, want %q", id, got, want)
+		}
+	}
+}
+
+// fakeSecret returns a random value that is obviously not a real credential,
+// so tests carry no secret-looking literals.
+func fakeSecret(label string) string {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return "fake-" + label + "-" + hex.EncodeToString(b)
 }

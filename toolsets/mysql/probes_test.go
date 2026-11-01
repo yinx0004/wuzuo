@@ -52,7 +52,7 @@ func TestInnoDBStatusSplitAndRedact(t *testing.T) {
 }
 
 func TestSpecsAreValid(t *testing.T) {
-	ts, err := New(Options{Targets: []Target{{Name: "a", DSN: "u:p@tcp(127.0.0.1:3306)/"}, {Name: "b", DSN: "u:p@tcp(127.0.0.1:3307)/"}}, AllowExplain: true, AllowRawSQL: true})
+	ts, err := New(Options{Targets: []Target{{Name: "a", DSN: "u@tcp(127.0.0.1:3306)/"}, {Name: "b", DSN: "u@tcp(127.0.0.1:3307)/"}}, AllowExplain: true, AllowRawSQL: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestExplainRefusesWritesWithGuidance(t *testing.T) {
 }
 
 func TestModelSQLProbesOffByDefault(t *testing.T) {
-	ts, err := New(Options{Targets: []Target{{Name: "a", DSN: "u:p@tcp(127.0.0.1:3306)/"}}})
+	ts, err := New(Options{Targets: []Target{{Name: "a", DSN: "u@tcp(127.0.0.1:3306)/"}}})
 	if err != nil {
 		t.Fatal(err)
 	}

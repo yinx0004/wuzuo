@@ -45,7 +45,10 @@ type LLM struct {
 	// MaxSteps bounds the number of model turns per investigation.
 	MaxSteps int `yaml:"max_steps"`
 	// RefusalFallback lets the Anthropic API re-serve a declined request with a
-	// fallback model instead of failing the investigation.
+	// fallback model instead of failing the investigation. Unset: on for the
+	// built-in models known to support it, off for any other model. true
+	// forces it on (for a model you know supports it), false turns it off.
+	// Only applies to the first-party Anthropic API.
 	RefusalFallback *bool `yaml:"refusal_fallback"`
 }
 
@@ -158,10 +161,6 @@ func (c *Config) applyDefaults() {
 	}
 	if c.LLM.Effort == "" {
 		c.LLM.Effort = DefaultEffort
-	}
-	if c.LLM.RefusalFallback == nil {
-		t := true
-		c.LLM.RefusalFallback = &t
 	}
 	if c.Safety.Redact == nil {
 		t := true

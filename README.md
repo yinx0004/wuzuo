@@ -97,12 +97,12 @@ section describes the same settings by hand.
 WuZuo detects a provider from the environment. You do not have to configure anything
 when one of these is set:
 
-| Environment | Provider | Default model |
+| Environment | Provider | Default model ([short name](docs/configuration.md#short-names)) |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Anthropic Claude (native API) | `claude-opus-5-5` |
+| `ANTHROPIC_API_KEY` | Anthropic Claude (native API) | `opus` |
 | `OPENAI_API_KEY` + `OPENAI_MODEL` (+ `OPENAI_BASE_URL`) | OpenAI or any compatible endpoint: Ollama, vLLM, LiteLLM, Bifrost… | — |
-| `DEEPSEEK_API_KEY` | DeepSeek | `deepseek-chat` |
-| `DASHSCOPE_API_KEY` | Qwen (Alibaba Cloud) | `qwen-plus` |
+| `DEEPSEEK_API_KEY` | DeepSeek | `deepseek` |
+| `DASHSCOPE_API_KEY` | Qwen (Alibaba Cloud) | `qwen` |
 | `ARK_API_KEY` + `ARK_MODEL` | Doubao (Volcengine Ark) | — |
 
 Pick a model by short name: `-m opus`, `-m sonnet`, `-m deepseek`, `-m qwen`, or
@@ -155,6 +155,7 @@ make lab-destroy                        # remove it completely
 | `wuzuo case list \| show <id>` | Browse past cases (ID prefixes work) |
 | `wuzuo case replay <id>` | Re-examine sealed evidence, e.g. with another model: `-m sonnet` |
 | `wuzuo models` | Model short names usable with `-m`, and which keys are set |
+| `wuzuo models fetch` | Ask each provider which models it offers now; flags newer and retired ones |
 | `wuzuo toolset list \| check` | List probes and check their prerequisites |
 | `wuzuo toolset run <probe> [json]` | Run one probe by hand |
 | `wuzuo init` | First-time setup: choose a model, add a target, write `~/.wuzuo/config.yaml` |
