@@ -2,17 +2,26 @@
   <title>Yuanfang</title>
   <!-- App-icon tile: dark, with a faint edge so it also reads on GitHub's dark theme. -->
   <rect x="2" y="2" width="124" height="124" rx="28" fill="#1c2128" stroke="#3d444d" stroke-width="2"/>
-  <!-- Scan frame: four corners. -->
-  <g fill="none" stroke="#f0f3f6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M30 48V38a8 8 0 0 1 8-8h10"/>
-    <path d="M80 30h10a8 8 0 0 1 8 8v10"/>
-    <path d="M98 80v10a8 8 0 0 1-8 8H80"/>
-    <path d="M48 98H38a8 8 0 0 1-8-8V80"/>
+  <!-- Yuanfang: one light outline around head, hair and bun, then the fills. -->
+  <g fill="#f0f3f6" stroke="#f0f3f6" stroke-width="6" stroke-linejoin="round">
+    <circle cx="64" cy="26" r="9"/>
+    <path d="M31 62A33 33 0 0 1 97 62Z"/>
+    <circle cx="64" cy="70" r="34"/>
   </g>
-  <!-- Magnifier over a piece of evidence. -->
-  <g fill="none" stroke="#f0f3f6" stroke-width="7" stroke-linecap="round">
-    <circle cx="60" cy="60" r="15"/>
-    <path d="M71 71l11 11"/>
-  </g>
-  <circle cx="60" cy="60" r="4.5" fill="#f0883e"/>
+  <circle cx="64" cy="26" r="9" fill="#2b2f36"/>
+  <circle cx="64" cy="70" r="34" fill="#ffd9b3"/>
+  <path d="M31 62A33 33 0 0 1 97 62Z" fill="#2b2f36"/>
+  <!-- Headband with flying tails. -->
+  <rect x="30" y="56" width="68" height="9" rx="3" fill="#f0883e"/>
+  <path d="M96 57q12-9 23-3q-9 2-13 9z" fill="#f0883e"/>
+  <path d="M96 63q11 3 17 14q-8-3-15-6z" fill="#f0883e"/>
+  <!-- Face: one eye, blush, smile. -->
+  <circle cx="50" cy="77" r="4" fill="#1c2128"/>
+  <circle cx="51.5" cy="75.5" r="1.3" fill="#ffffff"/>
+  <ellipse cx="45" cy="88" rx="5" ry="3" fill="#ff9e8a"/>
+  <path d="M55 92q5 5 10 0" stroke="#1c2128" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- The other eye is a magnifier: "元芳，你怎么看？" -->
+  <path d="M84 85L94 95" stroke="#1c2128" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="76" cy="77" r="11" fill="#ffffff" stroke="#1c2128" stroke-width="4"/>
+  <circle cx="77" cy="77" r="4.5" fill="#f0883e"/>
 </svg>
