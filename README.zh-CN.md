@@ -1,7 +1,15 @@
-<p align="center"><img src="docs/assets/banner.png" alt="WuZuo — AI SRE Forensics Agent" width="640"></p>
+<p align="center">
+  <img src="docs/assets/logo.svg" width="96" height="96" alt="WuZuo logo">
+</p>
+
+<h1 align="center">WuZuo</h1>
 
 <p align="center">
-  <b>Every incident leaves evidence.</b><br>
+  仵作 · AI SRE forensics agent<br>
+  <b>Every incident leaves evidence.</b>
+</p>
+
+<p align="center">
   开源的 AI 生产故障调查与根因分析 Agent。
 </p>
 
