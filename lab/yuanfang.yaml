@@ -1,15 +1,15 @@
-# WuZuo config for the local lab. Use with: eval "$(make -s lab-env)"
+# Yuanfang config for the local lab. Use with: eval "$(make -s lab-env)"
 llm:
   provider: ""   # auto-detect from environment
 targets:
   - name: lab
     type: mysql
-    description: WuZuo lab MySQL 8.4 with the seeded shop schema
-    dsn_env: WUZUO_LAB_DSN
+    description: Yuanfang lab MySQL 8.4 with the seeded shop schema
+    dsn_env: YUANFANG_LAB_DSN
 safety:
   redact: true
   query_timeout: 10s
   # On in the lab so the slow-query scenario can be confirmed with a plan.
   # Production configs keep the default (false) unless you need it.
   allow_explain: true
-cases_dir: ~/.wuzuo/lab-cases
+cases_dir: ~/.yuanfang/lab-cases

@@ -12,14 +12,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/yinx0004/wuzuo/internal/agent"
-	"github.com/yinx0004/wuzuo/internal/cases"
-	"github.com/yinx0004/wuzuo/internal/config"
-	"github.com/yinx0004/wuzuo/internal/evidence"
-	"github.com/yinx0004/wuzuo/internal/llm"
-	"github.com/yinx0004/wuzuo/internal/report"
-	"github.com/yinx0004/wuzuo/internal/version"
-	"github.com/yinx0004/wuzuo/pkg/toolset"
+	"github.com/yinx0004/yuanfang/internal/agent"
+	"github.com/yinx0004/yuanfang/internal/cases"
+	"github.com/yinx0004/yuanfang/internal/config"
+	"github.com/yinx0004/yuanfang/internal/evidence"
+	"github.com/yinx0004/yuanfang/internal/llm"
+	"github.com/yinx0004/yuanfang/internal/report"
+	"github.com/yinx0004/yuanfang/internal/version"
+	"github.com/yinx0004/yuanfang/pkg/toolset"
 )
 
 func envLookup(k string) string { return os.Getenv(k) }
@@ -35,7 +35,7 @@ type runOutput struct {
 }
 
 func addModelFlag(cmd *cobra.Command, g *globalFlags, out *runOutput) {
-	cmd.Flags().StringVarP(&out.model, "model", "m", "", "model to use: a name from `wuzuo models` (opus, sonnet, deepseek, ...) or provider/model-id")
+	cmd.Flags().StringVarP(&out.model, "model", "m", "", "model to use: a name from `yuanfang models` (opus, sonnet, deepseek, ...) or provider/model-id")
 	_ = cmd.RegisterFlagCompletionFunc("model", completeModels(g))
 }
 
@@ -44,9 +44,9 @@ func newAskCmd(g *globalFlags) *cobra.Command {
 	var out runOutput
 	cmd := &cobra.Command{
 		Use:   "ask <complaint>",
-		Short: "Investigate an incident and write an autopsy report",
-		Example: `  wuzuo ask "orders database became slow after 10:00" -t prod-orders
-  wuzuo ask "为什么订单库写入卡住了" --json > report.json`,
+		Short: "Investigate an incident and write a diagnosis report",
+		Example: `  yuanfang ask "orders database became slow after 10:00" -t prod-orders
+  yuanfang ask "为什么订单库写入卡住了" --json > report.json`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := g.load()
@@ -59,7 +59,7 @@ func newAskCmd(g *globalFlags) *cobra.Command {
 				return err
 			}
 			if len(sel) == 0 {
-				fmt.Fprintln(cmd.ErrOrStderr(), "warning: no targets configured; WuZuo can only reason, not examine. Set WUZUO_MYSQL_DSN or add targets to the config.")
+				fmt.Fprintln(cmd.ErrOrStderr(), "warning: no targets configured; Yuanfang can only reason, not examine. Set YUANFANG_MYSQL_DSN or add targets to the config.")
 			}
 			sets, err := buildToolsets(cfg, sel)
 			if err != nil {
@@ -199,21 +199,21 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 	if runErr != nil {
 		c.Status, c.Error = cases.StatusFailed, runErr.Error()
 		_ = store.Save(c)
-		return fmt.Errorf("case %s: %w (case files kept in %s; see `wuzuo case show %s --transcript`)", c.ID, runErr, displayPath(store.Dir(c.ID)), c.ID)
+		return fmt.Errorf("case %s: %w (case files kept in %s; see `yuanfang case show %s --transcript`)", c.ID, runErr, displayPath(store.Dir(c.ID)), c.ID)
 	}
 	c.Status = cases.StatusClosed
 	if err := store.Save(c); err != nil {
 		return err
 	}
 
-	md := report.Markdown(res.Autopsy, metaOf(c), locker.All(), report.DetectLang(r.question))
-	if err := store.SaveReport(c.ID, res.Autopsy, md); err != nil {
+	md := report.Markdown(res.Diagnosis, metaOf(c), locker.All(), report.DetectLang(r.question))
+	if err := store.SaveReport(c.ID, res.Diagnosis, md); err != nil {
 		return err
 	}
 	fmt.Fprintf(progress, "closed in %s: %d steps, %d evidence, %s\n",
 		c.Finished.Sub(c.Started).Round(time.Second), c.Steps, len(locker.All()), tokenSummary(c.Tokens))
 	fmt.Fprintf(progress, "case files: %s/ (case.json, report.md, report.json, transcript.jsonl, evidence/)\n\n", displayPath(store.Dir(c.ID)))
-	return printReport(cmd.OutOrStdout(), out.json, res.Autopsy, md)
+	return printReport(cmd.OutOrStdout(), out.json, res.Diagnosis, md)
 }
 
 func metaOf(c *cases.Case) report.Meta {
@@ -223,7 +223,7 @@ func metaOf(c *cases.Case) report.Meta {
 	}
 }
 
-func printReport(w io.Writer, asJSON bool, a *report.Autopsy, md string) error {
+func printReport(w io.Writer, asJSON bool, a *report.Diagnosis, md string) error {
 	if asJSON {
 		enc := json.NewEncoder(w)
 		enc.SetIndent("", "  ")

@@ -15,8 +15,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/yinx0004/wuzuo/internal/config"
-	"github.com/yinx0004/wuzuo/internal/llm"
+	"github.com/yinx0004/yuanfang/internal/config"
+	"github.com/yinx0004/yuanfang/internal/llm"
 )
 
 // listModels asks an endpoint for its models. Replaced in tests.
@@ -248,7 +248,7 @@ func printEndpointModels(out io.Writer, ep endpoint, models []llm.ModelInfo, all
 			ids = append(ids, id)
 		}
 		sort.Strings(ids)
-		fmt.Fprintf(out, "  To try it:   wuzuo ask -m %s/%s \"...\"\n", ep.resolved.Preset, ids[0])
+		fmt.Fprintf(out, "  To try it:   yuanfang ask -m %s/%s \"...\"\n", ep.resolved.Preset, ids[0])
 		fmt.Fprintf(out, "  To switch %q to it, add to the config:\n    models: { %s: { provider: %s, model: %s } }\n",
 			upgrade[ids[0]], upgrade[ids[0]], ep.resolved.Preset, ids[0])
 	}

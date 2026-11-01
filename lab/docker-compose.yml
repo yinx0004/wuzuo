@@ -1,10 +1,10 @@
-# WuZuo crime-scene lab: a disposable MySQL with a seeded "shop" schema and
+# Yuanfang crime-scene lab: a disposable MySQL with a seeded "shop" schema and
 # scripts that reproduce common incidents. Never point these scripts at a real
 # server.
 #
 #   make lab-up                        # generate passwords, start and seed
 #   lab/scenarios/lock-wait.sh  # stage an incident
-#   eval "$(make -s lab-env)" && wuzuo ask "orders updates are hanging" -t lab
+#   eval "$(make -s lab-env)" && yuanfang ask "orders updates are hanging" -t lab
 #   make lab-stop                      # pause, keep data
 #   make lab-destroy                   # remove container, data and passwords
 #
@@ -14,10 +14,10 @@
 services:
   mysql:
     image: mysql:${LAB_MYSQL_VERSION:-8.4}
-    container_name: wuzuo-lab-mysql
+    container_name: yuanfang-lab-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${LAB_ROOT_PASSWORD:?run make lab-up to generate lab/.env}
-      LAB_WUZUO_PASSWORD: ${LAB_WUZUO_PASSWORD:?run make lab-up to generate lab/.env}
+      LAB_YUANFANG_PASSWORD: ${LAB_YUANFANG_PASSWORD:?run make lab-up to generate lab/.env}
       LAB_APP_PASSWORD: ${LAB_APP_PASSWORD:?run make lab-up to generate lab/.env}
     command:
       - --performance-schema-consumer-events-statements-history=ON
@@ -28,8 +28,8 @@ services:
     volumes:
       - ./mysql:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      # Healthy only once the init scripts have created the WuZuo account.
-      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysql -h 127.0.0.1 -uroot -N -e \"SELECT 1 FROM mysql.user WHERE user = 'wuzuo'\" | grep -q 1"]
+      # Healthy only once the init scripts have created the Yuanfang account.
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysql -h 127.0.0.1 -uroot -N -e \"SELECT 1 FROM mysql.user WHERE user = 'yuanfang'\" | grep -q 1"]
       interval: 3s
       timeout: 3s
       retries: 60

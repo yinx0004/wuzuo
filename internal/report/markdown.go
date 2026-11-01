@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/yinx0004/wuzuo/internal/evidence"
+	"github.com/yinx0004/yuanfang/internal/evidence"
 )
 
 // Meta describes the case a report belongs to.
@@ -33,26 +33,26 @@ type labels struct {
 }
 
 var en = labels{
-	title: "Autopsy Report", caseLbl: "Case", question: "Complaint", targets: "Examined",
-	model: "Examiner", duration: "Duration", evidenceN: "Evidence",
-	summary: "Summary", cause: "Cause of Death", confidence: "confidence",
+	title: "Diagnosis Report", caseLbl: "Case", question: "Problem", targets: "Targets",
+	model: "Model", duration: "Duration", evidenceN: "Evidence",
+	summary: "Summary", cause: "Root Cause", confidence: "confidence",
 	contributing: "Contributing Factors", ruledOut: "Ruled Out", timeline: "Timeline",
 	recommendations: "Recommendations", risk: "risk", openQ: "Open Questions",
 	locker: "Evidence Locker", colID: "ID", colTool: "Probe", colTarget: "Target",
 	colTime: "Collected (UTC)", colStatus: "Status", colSeal: "Seal", ok: "ok", failed: "failed",
-	footer: "WuZuo does not execute recommendations. Review them before acting.",
+	footer: "Yuanfang does not execute recommendations. Review them before acting.",
 	conf:   map[string]string{"high": "high", "medium": "medium", "low": "low"},
 }
 
 var zh = labels{
-	title: "尸格 · 验尸报告", caseLbl: "案号", question: "报案", targets: "勘验对象",
-	model: "仵作", duration: "用时", evidenceN: "证物",
-	summary: "案情摘要", cause: "死因（根因）", confidence: "置信度",
+	title: "诊断报告", caseLbl: "案号", question: "问题描述", targets: "排查对象",
+	model: "元芳", duration: "用时", evidenceN: "证物",
+	summary: "案情摘要", cause: "根因", confidence: "置信度",
 	contributing: "诱因", ruledOut: "已排除", timeline: "时间线",
 	recommendations: "处置建议", risk: "风险", openQ: "存疑",
-	locker: "证物袋", colID: "编号", colTool: "勘验手段", colTarget: "对象",
+	locker: "证物袋", colID: "编号", colTool: "探查手段", colTarget: "对象",
 	colTime: "采集时间 (UTC)", colStatus: "状态", colSeal: "封签", ok: "成功", failed: "失败",
-	footer: "WuZuo 不会执行处置建议，操作前请人工复核。",
+	footer: "元芳不会执行处置建议，操作前请人工复核。",
 	conf:   map[string]string{"high": "高", "medium": "中", "low": "低"},
 }
 
@@ -67,7 +67,7 @@ func DetectLang(s string) string {
 }
 
 // Markdown renders the report for humans.
-func Markdown(a *Autopsy, m Meta, items []*evidence.Evidence, lang string) string {
+func Markdown(a *Diagnosis, m Meta, items []*evidence.Evidence, lang string) string {
 	l := en
 	if lang == "zh" {
 		l = zh
@@ -89,8 +89,8 @@ func Markdown(a *Autopsy, m Meta, items []*evidence.Evidence, lang string) strin
 	fmt.Fprintf(&b, "## %s\n\n%s\n\n", l.summary, a.Summary)
 
 	fmt.Fprintf(&b, "## %s\n\n", l.cause)
-	fmt.Fprintf(&b, "%s\n\n", a.CauseOfDeath.Statement)
-	fmt.Fprintf(&b, "*%s: %s* %s\n\n", l.confidence, l.conf[a.CauseOfDeath.Confidence], cite(a.CauseOfDeath.Evidence))
+	fmt.Fprintf(&b, "%s\n\n", a.RootCause.Statement)
+	fmt.Fprintf(&b, "*%s: %s* %s\n\n", l.confidence, l.conf[a.RootCause.Confidence], cite(a.RootCause.Evidence))
 
 	if len(a.Contributing) > 0 {
 		fmt.Fprintf(&b, "## %s\n\n", l.contributing)

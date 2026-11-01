@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yinx0004/wuzuo/internal/evidence"
-	"github.com/yinx0004/wuzuo/internal/llm"
-	"github.com/yinx0004/wuzuo/pkg/toolset"
+	"github.com/yinx0004/yuanfang/internal/evidence"
+	"github.com/yinx0004/yuanfang/internal/llm"
+	"github.com/yinx0004/yuanfang/pkg/toolset"
 )
 
 // scripted replays canned assistant turns and records what it was sent.
@@ -66,10 +66,10 @@ func TestInvestigateHappyPathWithRejection(t *testing.T) {
 		{ToolCalls: []llm.ToolCall{
 			call("5", "rule_out", `{"hypothesis":"H2","reason":"lag 0","evidence":["E2"]}`),
 			// Cites evidence that does not exist: must be rejected.
-			call("6", "submit_autopsy", `{"title":"t","summary":"s","cause_of_death":{"statement":"row lock","confidence":"high","evidence":["E9"]}}`),
+			call("6", "submit_diagnosis", `{"title":"t","summary":"s","root_cause":{"statement":"row lock","confidence":"high","evidence":["E9"]}}`),
 		}},
 		{ToolCalls: []llm.ToolCall{
-			call("7", "submit_autopsy", `{"title":"t","summary":"s","cause_of_death":{"statement":"row lock","confidence":"high","evidence":["E1"]},"ruled_out":[{"hypothesis":"Replication lag","reason":"lag 0","evidence":["E2"]}]}`),
+			call("7", "submit_diagnosis", `{"title":"t","summary":"s","root_cause":{"statement":"row lock","confidence":"high","evidence":["E1"]},"ruled_out":[{"hypothesis":"Replication lag","reason":"lag 0","evidence":["E2"]}]}`),
 		}},
 	}}
 	locker, _ := evidence.NewLocker("", true)
@@ -83,8 +83,8 @@ func TestInvestigateHappyPathWithRejection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Autopsy == nil || res.Autopsy.CauseOfDeath.Evidence[0] != "E1" {
-		t.Fatalf("unexpected autopsy: %+v", res.Autopsy)
+	if res.Diagnosis == nil || res.Diagnosis.RootCause.Evidence[0] != "E1" {
+		t.Fatalf("unexpected diagnosis: %+v", res.Diagnosis)
 	}
 	if res.Steps != 3 || res.Usage.InputTokens != 30 {
 		t.Fatalf("steps=%d usage=%+v", res.Steps, res.Usage)
@@ -121,7 +121,7 @@ func TestInvestigateHappyPathWithRejection(t *testing.T) {
 func TestInvestigateFailedProbeIsEvidence(t *testing.T) {
 	p := &scripted{turns: []llm.Message{
 		{ToolCalls: []llm.ToolCall{call("1", "probe_locks", `{}`)}},
-		{ToolCalls: []llm.ToolCall{call("2", "submit_autopsy", `{"title":"t","summary":"s","cause_of_death":{"statement":"cannot tell: access denied","confidence":"low","evidence":["E1"]}}`)}},
+		{ToolCalls: []llm.ToolCall{call("2", "submit_diagnosis", `{"title":"t","summary":"s","root_cause":{"statement":"cannot tell: access denied","confidence":"low","evidence":["E1"]}}`)}},
 	}}
 	locker, _ := evidence.NewLocker("", true)
 	_, err := Investigate(context.Background(), Options{
@@ -172,7 +172,7 @@ func (t sleepyTool) Run(context.Context, json.RawMessage) (*toolset.Result, erro
 func TestConcurrentProbesRecordOwnDuration(t *testing.T) {
 	p := &scripted{turns: []llm.Message{
 		{ToolCalls: []llm.ToolCall{call("1", "fast", `{}`), call("2", "slow", `{}`)}},
-		{ToolCalls: []llm.ToolCall{call("3", "submit_autopsy", `{"title":"t","summary":"s","cause_of_death":{"statement":"x","confidence":"low","evidence":["E1"]}}`)}},
+		{ToolCalls: []llm.ToolCall{call("3", "submit_diagnosis", `{"title":"t","summary":"s","root_cause":{"statement":"x","confidence":"low","evidence":["E1"]}}`)}},
 	}}
 	locker, _ := evidence.NewLocker("", true)
 	_, err := Investigate(context.Background(), Options{
@@ -208,9 +208,9 @@ func TestTranscriptRecordsEveryStep(t *testing.T) {
 			call("1", "propose_hypothesis", `{"name":"Lock contention"}`),
 			call("2", "probe_locks", `{"target":"db1"}`),
 		}},
-		{Text: "thinking out loud"}, // no tool call: WuZuo nudges
-		{ToolCalls: []llm.ToolCall{call("3", "submit_autopsy", `{"title":"t","summary":"s","cause_of_death":{"statement":"x","confidence":"high","evidence":["E9"]}}`)}},
-		{ToolCalls: []llm.ToolCall{call("4", "submit_autopsy", `{"title":"t","summary":"s","cause_of_death":{"statement":"x","confidence":"high","evidence":["E1"]}}`)}},
+		{Text: "thinking out loud"}, // no tool call: Yuanfang nudges
+		{ToolCalls: []llm.ToolCall{call("3", "submit_diagnosis", `{"title":"t","summary":"s","root_cause":{"statement":"x","confidence":"high","evidence":["E9"]}}`)}},
+		{ToolCalls: []llm.ToolCall{call("4", "submit_diagnosis", `{"title":"t","summary":"s","root_cause":{"statement":"x","confidence":"high","evidence":["E1"]}}`)}},
 	}}
 	locker, _ := evidence.NewLocker("", true)
 	rec := &entries{}
@@ -242,7 +242,7 @@ func TestTranscriptRecordsEveryStep(t *testing.T) {
 		!strings.Contains(results[1].Content, "blocking pid 42") {
 		t.Errorf("results recorded as sent: %+v", results)
 	}
-	if !strings.Contains(rec.list[5].Text, "call submit_autopsy") {
+	if !strings.Contains(rec.list[5].Text, "call submit_diagnosis") {
 		t.Errorf("nudge not recorded: %+v", rec.list[5])
 	}
 	if e := rec.list[7]; e.Kind != ErrorReportRejected || !strings.Contains(e.Detail, "unknown evidence E9") {

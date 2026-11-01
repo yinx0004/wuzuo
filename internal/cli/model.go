@@ -16,10 +16,10 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/yinx0004/wuzuo/internal/config"
+	"github.com/yinx0004/yuanfang/internal/config"
 )
 
-// interactive reports whether WuZuo may prompt: stdin and stderr are both
+// interactive reports whether Yuanfang may prompt: stdin and stderr are both
 // terminals. Replaced in tests.
 var interactive = func() bool {
 	return term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stderr.Fd()))
@@ -29,8 +29,8 @@ var interactive = func() bool {
 var promptInput io.Reader = os.Stdin
 
 // ensureModel returns the model name to use for this run. When the user has
-// not chosen a model anywhere (-m, WUZUO_MODEL, WUZUO_PROVIDER, llm.model,
-// llm.provider) and WuZuo runs in a terminal, it lists the models whose keys
+// not chosen a model anywhere (-m, YUANFANG_MODEL, YUANFANG_PROVIDER, llm.model,
+// llm.provider) and Yuanfang runs in a terminal, it lists the models whose keys
 // are set, lets the user pick one (Enter takes the default), and offers to
 // save the choice. Without a terminal it uses the default and says so.
 func ensureModel(cmd *cobra.Command, cfg *config.Config, configPath, override string) (string, error) {
@@ -43,7 +43,7 @@ func ensureModel(cmd *cobra.Command, cfg *config.Config, configPath, override st
 	}
 	errOut := cmd.ErrOrStderr()
 	if !interactive() {
-		fmt.Fprintf(errOut, "note: no model configured; using %s (%s/%s). Choose with -m <name>; see `wuzuo models`.\n",
+		fmt.Fprintf(errOut, "note: no model configured; using %s (%s/%s). Choose with -m <name>; see `yuanfang models`.\n",
 			def.Name, def.Provider, def.Model)
 		return def.Name, nil
 	}
@@ -90,7 +90,7 @@ func pickModel(in *bufio.Reader, out io.Writer, choices []config.Choice, def con
 		}
 	}
 	defIdx := 0
-	fmt.Fprintln(out, "Choose a model for WuZuo:")
+	fmt.Fprintln(out, "Choose a model for Yuanfang:")
 	w := tabwriter.NewWriter(out, 0, 2, 2, ' ', 0)
 	for i, ch := range avail {
 		mark := ""
@@ -198,12 +198,12 @@ func newModelsCmd(g *globalFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "models",
 		Short: "List model names usable with -m and in llm.model",
-		Long: `List the short model names WuZuo understands: built-in names, your own
+		Long: `List the short model names Yuanfang understands: built-in names, your own
 aliases from "models:" in the config, and models named by provider variables
 such as OPENAI_MODEL. "*" marks the model a run would use now.
 
 Any "provider/model-id" also works, e.g. -m openai/gpt-5 or -m ark/ep-xxxx.
-Use "wuzuo models fetch" to see which models each provider offers right now.`,
+Use "yuanfang models fetch" to see which models each provider offers right now.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := g.load()
 			if err != nil {
@@ -217,7 +217,7 @@ Use "wuzuo models fetch" to see which models each provider offers right now.`,
 				}
 			} else if def, ok := cfg.DefaultChoice(envLookup); ok {
 				current = def.Provider + "/" + def.Model
-				currentNote = "default; `wuzuo ask` will ask you to choose"
+				currentNote = "default; `yuanfang ask` will ask you to choose"
 			}
 			w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
 			fmt.Fprintln(w, "\tNAME\tPROVIDER\tMODEL\tKEY\tSOURCE")

@@ -11,13 +11,13 @@ import (
 	"strings"
 )
 
-// Wire protocols WuZuo speaks.
+// Wire protocols Yuanfang speaks.
 const (
 	KindAnthropic = "anthropic"
 	KindOpenAI    = "openai"
 )
 
-// Preset describes a provider WuZuo can detect from the environment.
+// Preset describes a provider Yuanfang can detect from the environment.
 type Preset struct {
 	Name       string
 	Kind       string
@@ -39,7 +39,7 @@ var Presets = []Preset{
 	{Name: "ark", Kind: KindOpenAI, KeyEnvs: []string{"ARK_API_KEY"}, BaseURL: "https://ark.cn-beijing.volces.com/api/v3", ModelEnv: "ARK_MODEL"},
 }
 
-// BuiltinModel is a short name for a provider + model pair, with what WuZuo
+// BuiltinModel is a short name for a provider + model pair, with what Yuanfang
 // knows about the model.
 type BuiltinModel struct {
 	Name, Provider, Model, Description string
@@ -47,7 +47,7 @@ type BuiltinModel struct {
 	// this model, re-serving a declined request on a fallback model.
 	RefusalFallback bool
 	// AdaptiveThinking: the model accepts `thinking: {type: "adaptive"}`, so
-	// WuZuo can ask for summarized thinking to record in the transcript.
+	// Yuanfang can ask for summarized thinking to record in the transcript.
 	AdaptiveThinking bool
 }
 
@@ -96,21 +96,21 @@ type ResolvedLLM struct {
 }
 
 // ModelChosen reports whether the user has expressed any model or provider
-// preference: a -m override, WUZUO_MODEL/WUZUO_PROVIDER, or llm.model/provider.
+// preference: a -m override, YUANFANG_MODEL/YUANFANG_PROVIDER, or llm.model/provider.
 func (c *Config) ModelChosen(override string, getenv func(string) string) bool {
-	return override != "" || getenv("WUZUO_MODEL") != "" || getenv("WUZUO_PROVIDER") != "" ||
+	return override != "" || getenv("YUANFANG_MODEL") != "" || getenv("YUANFANG_PROVIDER") != "" ||
 		c.LLM.Model != "" || c.LLM.Provider != ""
 }
 
 // ResolveModel determines provider, model, endpoint and key.
 //
-// The model name comes from the first of: override (-m), $WUZUO_MODEL,
+// The model name comes from the first of: override (-m), $YUANFANG_MODEL,
 // llm.model. It may be a config alias, a built-in alias, "provider/model",
 // a bare provider name, or a raw model ID. Aliases and provider/model names
-// carry their provider; otherwise the provider comes from $WUZUO_PROVIDER,
+// carry their provider; otherwise the provider comes from $YUANFANG_PROVIDER,
 // llm.provider, or the environment, in that order.
 func (c *Config) ResolveModel(override string, getenv func(string) string) (*ResolvedLLM, error) {
-	return c.resolve(firstNonEmpty(override, getenv("WUZUO_MODEL"), c.LLM.Model), true, getenv)
+	return c.resolve(firstNonEmpty(override, getenv("YUANFANG_MODEL"), c.LLM.Model), true, getenv)
 }
 
 // ResolveEndpoint resolves the endpoint and key for name (a provider or a
@@ -121,7 +121,7 @@ func (c *Config) ResolveEndpoint(name string, getenv func(string) string) (*Reso
 }
 
 func (c *Config) resolve(name string, requireModel bool, getenv func(string) string) (*ResolvedLLM, error) {
-	provider := strings.ToLower(firstNonEmpty(getenv("WUZUO_PROVIDER"), c.LLM.Provider))
+	provider := strings.ToLower(firstNonEmpty(getenv("YUANFANG_PROVIDER"), c.LLM.Provider))
 	model, baseURL, apiKeyEnv := "", "", ""
 	source := ""
 
@@ -195,7 +195,7 @@ func (c *Config) resolve(name string, requireModel bool, getenv func(string) str
 		if name != "" {
 			what = fmt.Sprintf("model %q (%s)", name, p.Name)
 		}
-		return nil, fmt.Errorf("%s needs an API key: export %s=... in your shell (see `wuzuo models`)", what, p.KeyEnvs[0])
+		return nil, fmt.Errorf("%s needs an API key: export %s=... in your shell (see `yuanfang models`)", what, p.KeyEnvs[0])
 	}
 
 	r.BaseURL = baseURL
@@ -220,7 +220,7 @@ func (c *Config) resolve(name string, requireModel bool, getenv func(string) str
 		r.RefusalFallback = SupportsRefusalFallback(p.Name, r.Model)
 	}
 	if r.Model == "" && requireModel {
-		hint := "-m <provider>/<model>, WUZUO_MODEL"
+		hint := "-m <provider>/<model>, YUANFANG_MODEL"
 		if p.ModelEnv != "" {
 			hint += " or " + p.ModelEnv
 		}
@@ -290,7 +290,7 @@ func (c *Config) Choices(getenv func(string) string) []Choice {
 	return out
 }
 
-// DefaultChoice is the model WuZuo picks when the user has not chosen one:
+// DefaultChoice is the model Yuanfang picks when the user has not chosen one:
 // the default model of the first provider (in detection order) whose key is
 // set, falling back to any available choice.
 func (c *Config) DefaultChoice(getenv func(string) string) (Choice, bool) {
@@ -450,6 +450,6 @@ func NoKeyHelp() string {
 		}
 		fmt.Fprintf(&b, "  export %-20s # %s\n", p.KeyEnvs[0]+"=...", what)
 	}
-	b.WriteString("Then run `wuzuo init` to choose a default model and add targets. See docs/configuration.md.")
+	b.WriteString("Then run `yuanfang init` to choose a default model and add targets. See docs/configuration.md.")
 	return b.String()
 }

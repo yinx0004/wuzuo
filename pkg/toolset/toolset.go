@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package toolset defines the contract between WuZuo's investigation loop and
+// Package toolset defines the contract between Yuanfang's investigation loop and
 // the data sources it can examine. A Toolset groups related read-only tools
 // (for example everything that inspects MySQL); each Tool is exposed to the
 // LLM as a function it can call.

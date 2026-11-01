@@ -15,12 +15,12 @@ import (
 // Template returns a commented starter config with llm.model set to model and
 // the given targets (an commented example when there are none).
 func Template(model string, targets []Target) string {
-	return fmt.Sprintf(`# WuZuo configuration. Reference: docs/configuration.md
+	return fmt.Sprintf(`# Yuanfang configuration. Reference: docs/configuration.md
 # No secrets here: API keys and DSNs live in environment variables or in
-# ~/.wuzuo/credentials (written by wuzuo init, mode 0600).
+# ~/.yuanfang/credentials (written by yuanfang init, mode 0600).
 
 llm:
-  # A short name from `+"`wuzuo models`"+` (opus, sonnet, deepseek, qwen, ...), an alias
+  # A short name from `+"`yuanfang models`"+` (opus, sonnet, deepseek, qwen, ...), an alias
   # from "models:" below, or "provider/model-id". Override per run with -m.
   model: %q
   # provider: anthropic   # only needed with a raw model ID
@@ -51,7 +51,7 @@ func targetsYAML(targets []Target) string {
 		return `  # - name: prod-orders
   #   type: mysql
   #   description: primary of the orders cluster
-  #   dsn_env: WUZUO_PROD_ORDERS_DSN   # e.g. wuzuo:***@tcp(10.0.0.5:3306)/
+  #   dsn_env: YUANFANG_PROD_ORDERS_DSN   # e.g. yuanfang:***@tcp(10.0.0.5:3306)/
 `
 	}
 	var b bytes.Buffer
@@ -60,7 +60,7 @@ func targetsYAML(targets []Target) string {
 		if t.Description != "" {
 			fmt.Fprintf(&b, "    description: %q\n", t.Description)
 		}
-		fmt.Fprintf(&b, "    dsn_env: %s   # e.g. wuzuo:***@tcp(10.0.0.5:3306)/\n", t.DSNEnv)
+		fmt.Fprintf(&b, "    dsn_env: %s   # e.g. yuanfang:***@tcp(10.0.0.5:3306)/\n", t.DSNEnv)
 	}
 	return b.String()
 }

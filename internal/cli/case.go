@@ -11,10 +11,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/yinx0004/wuzuo/internal/agent"
-	"github.com/yinx0004/wuzuo/internal/cases"
-	"github.com/yinx0004/wuzuo/internal/evidence"
-	"github.com/yinx0004/wuzuo/pkg/toolset"
+	"github.com/yinx0004/yuanfang/internal/agent"
+	"github.com/yinx0004/yuanfang/internal/cases"
+	"github.com/yinx0004/yuanfang/internal/evidence"
+	"github.com/yinx0004/yuanfang/pkg/toolset"
 )
 
 func newCaseCmd(g *globalFlags) *cobra.Command {
@@ -44,10 +44,10 @@ func newCaseCmd(g *globalFlags) *cobra.Command {
 	var asJSON, showTranscript, full bool
 	show := &cobra.Command{
 		Use:   "show <case-id>",
-		Short: "Print a case's autopsy report, or its transcript (ID prefixes work)",
-		Example: `  wuzuo case show 20261101-1040
-  wuzuo case show 20261101-1040 --transcript          # what the model saw and did, step by step
-  wuzuo case show 20261101-1040 --transcript --full   # without shortening long text`,
+		Short: "Print a case's diagnosis report, or its transcript (ID prefixes work)",
+		Example: `  yuanfang case show 20261101-1040
+  yuanfang case show 20261101-1040 --transcript          # what the model saw and did, step by step
+  yuanfang case show 20261101-1040 --transcript --full   # without shortening long text`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := g.load()
@@ -71,7 +71,7 @@ func newCaseCmd(g *globalFlags) *cobra.Command {
 			}
 			a, err := store.LoadReport(c.ID)
 			if err != nil {
-				return fmt.Errorf("case %s has no report (status %s): %s. Its transcript may show why: wuzuo case show %s --transcript", c.ID, c.Status, c.Error, c.ID)
+				return fmt.Errorf("case %s has no report (status %s): %s. Its transcript may show why: yuanfang case show %s --transcript", c.ID, c.Status, c.Error, c.ID)
 			}
 			if asJSON {
 				return printReport(cmd.OutOrStdout(), true, a, "")
@@ -92,8 +92,8 @@ func newCaseCmd(g *globalFlags) *cobra.Command {
 	replay := &cobra.Command{
 		Use:   "replay <case-id>",
 		Short: "Re-examine a case's sealed evidence (e.g. with another model) without touching any system",
-		Example: `  wuzuo case replay 20261101-1530 -m sonnet
-  wuzuo case replay 20261101-1530 -m deepseek`,
+		Example: `  yuanfang case replay 20261101-1530 -m sonnet
+  yuanfang case replay 20261101-1530 -m deepseek`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := g.load()

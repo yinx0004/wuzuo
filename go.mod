@@ -1,4 +1,4 @@
-module github.com/yinx0004/wuzuo
+module github.com/yinx0004/yuanfang
 
 go 1.26.0
 

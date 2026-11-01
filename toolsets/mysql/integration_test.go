@@ -18,9 +18,9 @@ import (
 
 func labToolset(t *testing.T) *Toolset {
 	t.Helper()
-	dsn := os.Getenv("WUZUO_TEST_MYSQL_DSN")
+	dsn := os.Getenv("YUANFANG_TEST_MYSQL_DSN")
 	if dsn == "" {
-		t.Skip("WUZUO_TEST_MYSQL_DSN not set")
+		t.Skip("YUANFANG_TEST_MYSQL_DSN not set")
 	}
 	ts, err := New(Options{Targets: []Target{{Name: "lab", DSN: dsn}}, QueryTimeout: 10 * time.Second, Redact: true, AllowExplain: true, AllowRawSQL: true})
 	if err != nil {
@@ -67,9 +67,9 @@ func TestIntegrationEveryProbeRuns(t *testing.T) {
 }
 
 func TestIntegrationSessionIsReadOnly(t *testing.T) {
-	dsn := os.Getenv("WUZUO_TEST_MYSQL_DSN")
+	dsn := os.Getenv("YUANFANG_TEST_MYSQL_DSN")
 	if dsn == "" {
-		t.Skip("WUZUO_TEST_MYSQL_DSN not set")
+		t.Skip("YUANFANG_TEST_MYSQL_DSN not set")
 	}
 	db, err := open(dsn, 5*time.Second)
 	if err != nil {
@@ -77,7 +77,7 @@ func TestIntegrationSessionIsReadOnly(t *testing.T) {
 	}
 	defer db.Close()
 	if _, err := db.Exec("UPDATE shop.orders SET amount = amount WHERE id = 1"); err == nil {
-		t.Fatal("write succeeded on a WuZuo session")
+		t.Fatal("write succeeded on a Yuanfang session")
 	}
 	var ro int
 	if err := db.QueryRow("SELECT @@transaction_read_only").Scan(&ro); err != nil || ro != 1 {
@@ -90,9 +90,9 @@ func TestIntegrationSessionIsReadOnly(t *testing.T) {
 // privilege, proving the session and transaction layers stop writes on their
 // own even if both the guard and least-privilege grants were missing.
 func TestIntegrationServerLayersHoldWithoutGuard(t *testing.T) {
-	dsn := os.Getenv("WUZUO_TEST_MYSQL_ROOT_DSN")
+	dsn := os.Getenv("YUANFANG_TEST_MYSQL_ROOT_DSN")
 	if dsn == "" {
-		t.Skip("WUZUO_TEST_MYSQL_ROOT_DSN not set")
+		t.Skip("YUANFANG_TEST_MYSQL_ROOT_DSN not set")
 	}
 	db, err := open(dsn, 5*time.Second)
 	if err != nil {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package config loads WuZuo's configuration file and resolves values that
+// Package config loads Yuanfang's configuration file and resolves values that
 // may come from the environment (LLM credentials, target DSNs).
 package config
 
@@ -15,11 +15,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config is the root of ~/.wuzuo/config.yaml.
+// Config is the root of ~/.yuanfang/config.yaml.
 type Config struct {
 	LLM LLM `yaml:"llm"`
 	// Models defines short names for provider + model pairs, usable with -m,
-	// $WUZUO_MODEL and llm.model. They take precedence over built-in names.
+	// $YUANFANG_MODEL and llm.model. They take precedence over built-in names.
 	Models   map[string]ModelAlias `yaml:"models"`
 	Targets  []Target              `yaml:"targets"`
 	Safety   Safety                `yaml:"safety"`
@@ -27,12 +27,12 @@ type Config struct {
 }
 
 // LLM selects the model provider. Every field is optional: when Provider is
-// empty WuZuo detects one from well-known environment variables.
+// empty Yuanfang detects one from well-known environment variables.
 type LLM struct {
 	// Provider is one of: anthropic, openai, deepseek, qwen, ark.
 	// deepseek/qwen/ark are presets of the OpenAI-compatible provider.
 	Provider string `yaml:"provider"`
-	// Model is a short name (see `wuzuo models`), "provider/model", or a
+	// Model is a short name (see `yuanfang models`), "provider/model", or a
 	// model ID for Provider.
 	Model   string `yaml:"model"`
 	BaseURL string `yaml:"base_url"`
@@ -52,7 +52,7 @@ type LLM struct {
 	RefusalFallback *bool `yaml:"refusal_fallback"`
 }
 
-// Target is a system WuZuo may examine.
+// Target is a system Yuanfang may examine.
 type Target struct {
 	Name        string `yaml:"name"`
 	Type        string `yaml:"type"` // mysql (mongodb coming next)
@@ -111,28 +111,28 @@ const (
 	DefaultEffort           = "high"
 )
 
-// Home returns WuZuo's state directory (~/.wuzuo, or $WUZUO_HOME).
+// Home returns Yuanfang's state directory (~/.yuanfang, or $YUANFANG_HOME).
 func Home() string {
-	if h := os.Getenv("WUZUO_HOME"); h != "" {
+	if h := os.Getenv("YUANFANG_HOME"); h != "" {
 		return h
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return ".wuzuo"
+		return ".yuanfang"
 	}
-	return filepath.Join(home, ".wuzuo")
+	return filepath.Join(home, ".yuanfang")
 }
 
 // DefaultPath is where the config file is looked up when none is given.
 func DefaultPath() string {
-	if p := os.Getenv("WUZUO_CONFIG"); p != "" {
+	if p := os.Getenv("YUANFANG_CONFIG"); p != "" {
 		return p
 	}
 	return filepath.Join(Home(), "config.yaml")
 }
 
 // Load reads the config at path. A missing file at the default location is
-// not an error: WuZuo can run purely from environment variables.
+// not an error: Yuanfang can run purely from environment variables.
 func Load(path string) (*Config, error) {
 	explicit := path != ""
 	if !explicit {
@@ -178,11 +178,11 @@ func (c *Config) applyDefaults() {
 	c.CasesDir = expandHome(c.CasesDir)
 }
 
-// addEnvTargets registers zero-config targets such as WUZUO_MYSQL_DSN when the
+// addEnvTargets registers zero-config targets such as YUANFANG_MYSQL_DSN when the
 // config file does not already define a target of that type.
 func (c *Config) addEnvTargets(getenv func(string) string) {
 	envTargets := []struct{ typ, env string }{
-		{"mysql", "WUZUO_MYSQL_DSN"},
+		{"mysql", "YUANFANG_MYSQL_DSN"},
 	}
 	for _, et := range envTargets {
 		if getenv(et.env) == "" || c.hasType(et.typ) {

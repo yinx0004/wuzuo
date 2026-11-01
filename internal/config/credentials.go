@@ -14,19 +14,19 @@ import (
 )
 
 // The credentials file keeps secrets out of config.yaml: API keys and DSNs
-// entered during setup are stored as KEY=VALUE lines in $WUZUO_HOME/credentials
+// entered during setup are stored as KEY=VALUE lines in $YUANFANG_HOME/credentials
 // (mode 0600) and exported into the process environment at startup. A
 // variable already set in the environment always wins, so `export` keeps
 // working and overrides the file.
 
 var credentialKeyRe = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*$`)
 
-const storeBanner = `# WuZuo secrets: API keys and database DSNs, one KEY=VALUE per line.
+const storeBanner = `# Yuanfang secrets: API keys and database DSNs, one KEY=VALUE per line.
 # Keep this file private (mode 0600). Environment variables with the same
 # name take precedence over the values here.
 `
 
-// CredentialsPath returns $WUZUO_HOME/credentials.
+// CredentialsPath returns $YUANFANG_HOME/credentials.
 func CredentialsPath() string {
 	return filepath.Join(Home(), "credentials")
 }
@@ -46,7 +46,7 @@ func LoadCredentials(path string) (loaded []string, warning string, err error) {
 	if st.Mode().Perm()&0o077 != 0 {
 		warning = fmt.Sprintf("%s is accessible by other users (mode %v); run: chmod 600 %s", path, st.Mode().Perm(), path)
 	}
-	data, err := os.ReadFile(filepath.Clean(path)) //nolint:gosec // fixed path under WUZUO_HOME
+	data, err := os.ReadFile(filepath.Clean(path)) //nolint:gosec // fixed path under YUANFANG_HOME
 	if err != nil {
 		return nil, warning, err
 	}
@@ -78,7 +78,7 @@ func SaveCredential(path, key, value string) error {
 		return errors.New("value must be a single line")
 	}
 	var lines []string
-	data, err := os.ReadFile(filepath.Clean(path)) //nolint:gosec // fixed path under WUZUO_HOME
+	data, err := os.ReadFile(filepath.Clean(path)) //nolint:gosec // fixed path under YUANFANG_HOME
 	switch {
 	case errors.Is(err, os.ErrNotExist):
 		lines = strings.Split(strings.TrimRight(storeBanner, "\n"), "\n")
@@ -102,7 +102,7 @@ func SaveCredential(path, key, value string) error {
 	}
 	path = filepath.Clean(path)
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil { //nolint:gosec // fixed path under WUZUO_HOME
+	if err := os.WriteFile(tmp, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil { //nolint:gosec // fixed path under YUANFANG_HOME
 		return err
 	}
 	return os.Rename(tmp, path)

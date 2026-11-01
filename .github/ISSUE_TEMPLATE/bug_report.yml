@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Security issues** (WuZuo wrote to a target database, data or secrets reached the model or disk, the read-only guard was bypassed) must not be filed here. Report them privately: https://github.com/yinx0004/wuzuo/security/advisories/new
+        **Security issues** (Yuanfang wrote to a target database, data or secrets reached the model or disk, the read-only guard was bypassed) must not be filed here. Report them privately: https://github.com/yinx0004/yuanfang/security/advisories/new
   - type: textarea
     id: what
     attributes:
@@ -30,7 +30,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: wuzuo --version
+      label: yuanfang --version
     validations:
       required: true
   - type: input
@@ -42,4 +42,4 @@ body:
     id: case
     attributes:
       label: Case ID (optional)
-      description: "`wuzuo case show <id> --transcript` shows what the model saw. Share only parts you are comfortable sharing."
+      description: "`yuanfang case show <id> --transcript` shows what the model saw. Share only parts you are comfortable sharing."

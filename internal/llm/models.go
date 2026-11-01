@@ -34,7 +34,7 @@ func notFound(model, provider, baseURL string) error {
 	if baseURL != "" {
 		where += " at " + baseURL
 	}
-	return fmt.Errorf("%w: %q is not offered by %s (retired, renamed, or not enabled for this key). Run `wuzuo models fetch` to see the current models", ErrModelNotFound, model, where)
+	return fmt.Errorf("%w: %q is not offered by %s (retired, renamed, or not enabled for this key). Run `yuanfang models fetch` to see the current models", ErrModelNotFound, model, where)
 }
 
 // ListModels implements ModelLister.

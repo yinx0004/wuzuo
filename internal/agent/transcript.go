@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/yinx0004/wuzuo/internal/llm"
+	"github.com/yinx0004/yuanfang/internal/llm"
 )
 
 // Recorder receives the transcript of an investigation as it happens, one
@@ -36,7 +36,7 @@ const (
 const (
 	ErrorLLM            = "llm"             // the provider call failed
 	ErrorRefused        = "refused"         // the model declined
-	ErrorReportRejected = "report_rejected" // submit_autopsy failed validation
+	ErrorReportRejected = "report_rejected" // submit_diagnosis failed validation
 	ErrorNoVerdict      = "no_verdict"      // no accepted report within the limits
 )
 

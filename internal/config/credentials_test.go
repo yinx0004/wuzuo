@@ -14,45 +14,45 @@ import (
 func TestCredentialsSaveAndLoad(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "home", "credentials")
 	first, second, dsn := fakeSecret("api-key"), fakeSecret("api-key"), "u:"+fakeSecret("db-password")+"@tcp(h:3306)/"
-	if err := SaveCredential(path, "WUZUO_TEST_KEY_A", first); err != nil {
+	if err := SaveCredential(path, "YUANFANG_TEST_KEY_A", first); err != nil {
 		t.Fatal(err)
 	}
-	if err := SaveCredential(path, "WUZUO_TEST_DSN_B", dsn); err != nil {
+	if err := SaveCredential(path, "YUANFANG_TEST_DSN_B", dsn); err != nil {
 		t.Fatal(err)
 	}
-	if err := SaveCredential(path, "WUZUO_TEST_KEY_A", second); err != nil { // replace
+	if err := SaveCredential(path, "YUANFANG_TEST_KEY_A", second); err != nil { // replace
 		t.Fatal(err)
 	}
 	if st, _ := os.Stat(path); st.Mode().Perm() != 0o600 {
 		t.Fatalf("mode = %v", st.Mode().Perm())
 	}
 	data, _ := os.ReadFile(path)
-	if strings.Count(string(data), "WUZUO_TEST_KEY_A=") != 1 || !strings.Contains(string(data), "# WuZuo secrets") {
+	if strings.Count(string(data), "YUANFANG_TEST_KEY_A=") != 1 || !strings.Contains(string(data), "# Yuanfang secrets") {
 		t.Fatalf("file:\n%s", data)
 	}
 
-	t.Setenv("WUZUO_TEST_KEY_A", "")
-	t.Setenv("WUZUO_TEST_DSN_B", "from-env") // the environment wins
+	t.Setenv("YUANFANG_TEST_KEY_A", "")
+	t.Setenv("YUANFANG_TEST_DSN_B", "from-env") // the environment wins
 	loaded, warning, err := LoadCredentials(path)
 	if err != nil || warning != "" {
 		t.Fatalf("%v %q", err, warning)
 	}
-	if len(loaded) != 1 || loaded[0] != "WUZUO_TEST_KEY_A" || os.Getenv("WUZUO_TEST_KEY_A") != second || os.Getenv("WUZUO_TEST_DSN_B") != "from-env" {
-		t.Fatalf("loaded=%v a=%q b=%q", loaded, os.Getenv("WUZUO_TEST_KEY_A"), os.Getenv("WUZUO_TEST_DSN_B"))
+	if len(loaded) != 1 || loaded[0] != "YUANFANG_TEST_KEY_A" || os.Getenv("YUANFANG_TEST_KEY_A") != second || os.Getenv("YUANFANG_TEST_DSN_B") != "from-env" {
+		t.Fatalf("loaded=%v a=%q b=%q", loaded, os.Getenv("YUANFANG_TEST_KEY_A"), os.Getenv("YUANFANG_TEST_DSN_B"))
 	}
 }
 
 func TestCredentialsWarnOnOpenPermissions(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "credentials")
-	if err := os.WriteFile(path, []byte("# c\nexport WUZUO_TEST_KEY_C=x\n"), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte("# c\nexport YUANFANG_TEST_KEY_C=x\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("WUZUO_TEST_KEY_C", "")
+	t.Setenv("YUANFANG_TEST_KEY_C", "")
 	_, warning, err := LoadCredentials(path)
 	if err != nil || !strings.Contains(warning, "chmod 600") {
 		t.Fatalf("%v %q", err, warning)
 	}
-	if os.Getenv("WUZUO_TEST_KEY_C") != "x" {
+	if os.Getenv("YUANFANG_TEST_KEY_C") != "x" {
 		t.Fatal("export prefix not accepted")
 	}
 }

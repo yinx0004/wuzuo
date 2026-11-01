@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" width="96" height="96" alt="WuZuo logo">
+  <img src="docs/assets/logo.svg" width="96" height="96" alt="Yuanfang logo">
 </p>
 
-<h1 align="center">WuZuo</h1>
+<h1 align="center">Yuanfang</h1>
 
 <p align="center">
-  仵作 · AI SRE forensics agent<br>
+  元芳 · AI SRE forensics agent<br>
   <b>Every incident leaves evidence.</b>
 </p>
 
@@ -14,27 +14,28 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/yinx0004/wuzuo/actions/workflows/ci.yml"><img src="https://github.com/yinx0004/wuzuo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/yinx0004/yuanfang/actions/workflows/ci.yml"><img src="https://github.com/yinx0004/yuanfang/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
   <a href="README.zh-CN.md">中文文档</a>
 </p>
 
 ---
 
-**WuZuo** (仵作, *wǔ-zuò*) is named after the coroners of imperial China. A 仵作 examined
-the scene, wrote down what was found, and gave a verdict that others could check against
-those notes. WuZuo handles a database incident the same way:
+**Yuanfang** (元芳, *yuán-fāng*) is named after Li Yuanfang, Judge Dee's lieutenant in
+Chinese detective stories. Whenever a case turned murky, Judge Dee asked him "Yuanfang, what
+do you make of it?" (元芳，你怎么看？), a line most Chinese internet users know by heart.
+Yuanfang answers that question for database incidents, and answers it with evidence:
 
 - It first lists the plausible causes, then runs read-only probes to confirm or rule out
   each one.
 - Each probe result is saved as numbered evidence (`E1`, `E2`, …), with SQL values and
   credentials redacted and a SHA-256 hash, so later edits are detected.
-- The final report (the "autopsy") has to cite that evidence. WuZuo checks every citation
+- The final diagnosis report has to cite that evidence. Yuanfang checks every citation
   and sends the report back if it cites evidence that does not exist. A cause with no
   evidence can only be reported as low confidence.
 - Probes connect with a least-privilege account, on sessions set to
-  `transaction_read_only=ON` with a time limit. WuZuo suggests fixes but never runs them.
-- `wuzuo case replay` re-runs the analysis on saved evidence, for example with another
+  `transaction_read_only=ON` with a time limit. Yuanfang suggests fixes but never runs them.
+- `yuanfang case replay` re-runs the analysis on saved evidence, for example with another
   model, without connecting to production again.
 
 > Status: early development (v0.1). MySQL is supported now; MongoDB comes next.
@@ -44,7 +45,7 @@ those notes. WuZuo handles a database incident the same way:
 Illustrative output from the lab's `lock-wait` scenario:
 
 ```text
-$ wuzuo ask "updates to orders are hanging since a minute ago" -t prod-orders
+$ yuanfang ask "updates to orders are hanging since a minute ago" -t prod-orders
 case 20261101-055624-3f2a, model anthropic/claude-opus-5-5 (built-in alias "opus")
   hypothesis  H1 Row lock contention on shop.orders
   hypothesis  H2 Metadata lock from DDL
@@ -57,7 +58,7 @@ case 20261101-055624-3f2a, model anthropic/claude-opus-5-5 (built-in alias "opus
   evidence    E3 mysql_status_delta saved
   ruled out   H2 Metadata lock from DDL: no metadata lock waits
   ruled out   H3 Server saturation: Threads_running 7, no buffer pool misses
-closed in 41s: 4 steps, 3 evidence, 48211 in / 2390 out tokens, saved to ~/.wuzuo/cases/20261101-055624-3f2a
+closed in 41s: 4 steps, 3 evidence, 48211 in / 2390 out tokens, saved to ~/.yuanfang/cases/20261101-055624-3f2a
 ```
 
 The report is printed as Markdown, or as JSON with `--json`. It is also saved in the
@@ -66,7 +67,7 @@ case directory:
 ```markdown
 # Orders updates blocked by an idle transaction holding a row lock
 
-## Cause of Death
+## Root Cause
 Session 48 (app@10.0.3.17) ran `UPDATE orders SET status = ?, note = ? WHERE id = ?`
 inside a transaction 5 minutes ago and has been idle (Sleep) since without committing.
 It holds an X record lock on orders.PRIMARY that every later update of that row waits for.
@@ -86,28 +87,28 @@ It holds an X record lock on orders.PRIMARY that every later update of that row 
 ### 1. Install
 
 ```bash
-brew install yinx0004/tap/wuzuo                       # macOS and Linux
+brew install yinx0004/tap/yuanfang                       # macOS and Linux
 ```
 
 ```bash
-go install github.com/yinx0004/wuzuo/cmd/wuzuo@latest  # with Go
+go install github.com/yinx0004/yuanfang/cmd/yuanfang@latest  # with Go
 ```
 
 Each release also publishes binaries for Linux, macOS and Windows on the
-[releases page](https://github.com/yinx0004/wuzuo/releases), and an image at
-`ghcr.io/yinx0004/wuzuo`. Homebrew gets stable releases only, not pre-releases.
+[releases page](https://github.com/yinx0004/yuanfang/releases), and an image at
+`ghcr.io/yinx0004/yuanfang`. Homebrew gets stable releases only, not pre-releases.
 
 ### 2. Set up
 
-Run `wuzuo`. On first use it walks you through choosing a model, entering its API key,
+Run `yuanfang`. On first use it walks you through choosing a model, entering its API key,
 and adding a MySQL target (host, port, user, password), then tests the connection. Settings go to
-`~/.wuzuo/config.yaml`; the key and DSN go to `~/.wuzuo/credentials` (mode 0600), and
+`~/.yuanfang/config.yaml`; the key and DSN go to `~/.yuanfang/credentials` (mode 0600), and
 exported environment variables take precedence over that file. The rest of this
 section describes the same settings by hand.
 
 ### 3. Choose a model
 
-WuZuo detects a provider from the environment. You do not have to configure anything
+Yuanfang detects a provider from the environment. You do not have to configure anything
 when one of these is set:
 
 | Environment | Provider | Default model ([short name](docs/configuration.md#short-names)) |
@@ -119,27 +120,27 @@ when one of these is set:
 | `ARK_API_KEY` + `ARK_MODEL` | Doubao (Volcengine Ark) | — |
 
 Pick a model by short name: `-m opus`, `-m sonnet`, `-m deepseek`, `-m qwen`, or
-`-m provider/model-id`. `wuzuo models` lists the names. If nothing is configured,
-`wuzuo ask` lets you choose from the models whose key is set and offers to save the
+`-m provider/model-id`. `yuanfang models` lists the names. If nothing is configured,
+`yuanfang ask` lets you choose from the models whose key is set and offers to save the
 choice.
 
-### 4. Create a read-only account and point WuZuo at it
+### 4. Create a read-only account and point Yuanfang at it
 
 ```sql
 -- docs/mysql-privileges.sql
-CREATE USER 'wuzuo'@'%' IDENTIFIED BY RANDOM PASSWORD;  -- prints the generated password once
-GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'wuzuo'@'%';
-GRANT SELECT ON performance_schema.* TO 'wuzuo'@'%';
-GRANT SELECT, EXECUTE ON sys.* TO 'wuzuo'@'%';
+CREATE USER 'yuanfang'@'%' IDENTIFIED BY RANDOM PASSWORD;  -- prints the generated password once
+GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'yuanfang'@'%';
+GRANT SELECT ON performance_schema.* TO 'yuanfang'@'%';
+GRANT SELECT, EXECUTE ON sys.* TO 'yuanfang'@'%';
 ```
 
 ```bash
-export WUZUO_MYSQL_DSN='wuzuo:...@tcp(10.0.0.5:3306)/'
-wuzuo toolset check          # connectivity, privileges, server features
-wuzuo ask "the orders database got slow after 10:00"
+export YUANFANG_MYSQL_DSN='yuanfang:...@tcp(10.0.0.5:3306)/'
+yuanfang toolset check          # connectivity, privileges, server features
+yuanfang ask "the orders database got slow after 10:00"
 ```
 
-For several servers, run `wuzuo init` and list them under `targets:`. Each target names the
+For several servers, run `yuanfang init` and list them under `targets:`. Each target names the
 environment variable that holds its DSN, so credentials never live in the config file.
 See **[docs/configuration.md](docs/configuration.md)** for where the config file lives,
 every field and environment variable, model selection rules, and troubleshooting.
@@ -154,7 +155,7 @@ real incidents. Never point the scripts at a real server.
 make lab-up && make build
 eval "$(make -s lab-env)"
 lab/scenarios/lock-wait.sh        # also: slow-query.sh, deadlock.sh, conn-pileup.sh
-./bin/wuzuo ask "updates to orders are hanging" -t lab
+./bin/yuanfang ask "updates to orders are hanging" -t lab
 lab/scenarios/reset.sh                  # end the staged incident
 make lab-stop                           # pause the lab, keep its data
 make lab-destroy                        # remove it completely
@@ -164,15 +165,15 @@ make lab-destroy                        # remove it completely
 
 | Command | |
 |---|---|
-| `wuzuo ask <complaint>` | Investigate and print the autopsy report (`-m model`, `-t target`, `--json`, `-q`) |
-| `wuzuo case list \| show <id>` | Browse past cases (ID prefixes work) |
-| `wuzuo case show <id> --transcript` | Step by step: what the model saw, its thinking summary, the probes it called, and what came back (`--full` for unshortened text) |
-| `wuzuo case replay <id>` | Re-examine sealed evidence, e.g. with another model: `-m sonnet` |
-| `wuzuo models` | Model short names usable with `-m`, and which keys are set |
-| `wuzuo models fetch` | Ask each provider which models it offers now; flags newer and retired ones |
-| `wuzuo toolset list \| check` | List probes and check their prerequisites |
-| `wuzuo toolset run <probe> [json]` | Run one probe by hand |
-| `wuzuo init` | First-time setup: choose a model, add a target, write `~/.wuzuo/config.yaml` |
+| `yuanfang ask <problem>` | Investigate and print the diagnosis report (`-m model`, `-t target`, `--json`, `-q`) |
+| `yuanfang case list \| show <id>` | Browse past cases (ID prefixes work) |
+| `yuanfang case show <id> --transcript` | Step by step: what the model saw, its thinking summary, the probes it called, and what came back (`--full` for unshortened text) |
+| `yuanfang case replay <id>` | Re-examine sealed evidence, e.g. with another model: `-m sonnet` |
+| `yuanfang models` | Model short names usable with `-m`, and which keys are set |
+| `yuanfang models fetch` | Ask each provider which models it offers now; flags newer and retired ones |
+| `yuanfang toolset list \| check` | List probes and check their prerequisites |
+| `yuanfang toolset run <probe> [json]` | Run one probe by hand |
+| `yuanfang init` | First-time setup: choose a model, add a target, write `~/.yuanfang/config.yaml` |
 
 ## MySQL probes
 
@@ -194,34 +195,34 @@ make lab-destroy                        # remove it completely
 
 ## Safety model
 
-WuZuo connects to production databases, so staying read-only cannot depend on the model
+Yuanfang connects to production databases, so staying read-only cannot depend on the model
 following instructions. Each of these controls blocks writes on its own:
 
 | Control | What it does |
 |---|---|
-| Database account | Least-privilege grants (see above). `wuzuo toolset check` warns about accounts with `ALL PRIVILEGES`. |
+| Database account | Least-privilege grants (see above). `yuanfang toolset check` warns about accounts with `ALL PRIVILEGES`. |
 | Session | Every connection sets `transaction_read_only=ON`, `max_execution_time` and `lock_wait_timeout=5`. At most 3 connections per target. |
 | Probes | Built-in probes use constant SQL with bound parameters. |
 | Model-written SQL | Only `mysql_explain` and `mysql_query` accept SQL from the model, and both are off by default (`safety.allow_explain`, `safety.allow_raw_sql`). The statement must pass a guard that allows a single SELECT, SHOW, EXPLAIN or DESCRIBE and rejects locking reads, `SLEEP`, `INTO OUTFILE`, executable comments, and syntax the guard and the server could read differently. It then runs inside `START TRANSACTION READ ONLY`, which is always rolled back. |
 | Output | SQL values become `?`, InnoDB row dumps are removed, and credentials are stripped before anything is shown to the model or written to disk. |
-| Fixes | Recommendations are text for a human. WuZuo cannot execute them. |
+| Fixes | Recommendations are text for a human. Yuanfang cannot execute them. |
 
 An integration test sends UPDATE, CREATE TABLE and multi-statement SQL past the guard
 using an account with every privilege; the session and transaction settings reject all
 of them.
 
 Built-in probes never select table rows. `mysql_query` can, if you enable it and also
-grant the WuZuo account SELECT on application schemas.
+grant the Yuanfang account SELECT on application schemas.
 
 ## Architecture
 
 ```text
-cmd/wuzuo            CLI (cobra)
-internal/agent       investigation loop: hypotheses → probes → rule-outs → autopsy
+cmd/yuanfang            CLI (cobra)
+internal/agent       investigation loop: hypotheses → probes → rule-outs → diagnosis
 internal/llm         provider-neutral chat + tools (Anthropic native, OpenAI-compatible)
 internal/evidence    evidence locker: numbering, redaction, sealing, persistence
-internal/report      autopsy schema, validation against evidence, Markdown rendering
-internal/cases       case storage under ~/.wuzuo/cases
+internal/report      diagnosis schema, validation against evidence, Markdown rendering
+internal/cases       case storage under ~/.yuanfang/cases
 pkg/toolset          public toolset/probe interface for extensions
 pkg/redact           SQL literal and secret redaction
 toolsets/mysql       MySQL 8.0+ probes and the read-only guard
@@ -230,14 +231,14 @@ lab                  local test lab for development: disposable MySQL plus incid
 
 ## Roadmap
 
-- **[v0.1.0](https://github.com/yinx0004/wuzuo/milestone/1)**: MySQL toolset, with an
+- **[v0.1.0](https://github.com/yinx0004/yuanfang/milestone/1)**: MySQL toolset, with an
   evaluation on staged lab incidents
-- **[v0.2.0](https://github.com/yinx0004/wuzuo/milestone/2)**: MongoDB toolset, more MySQL
+- **[v0.2.0](https://github.com/yinx0004/yuanfang/milestone/2)**: MongoDB toolset, more MySQL
   coverage
 - Later: Prometheus and other data sources, an HTTP server, chat bots, alert-driven
   investigations
 
-All planned work is tracked as [issues](https://github.com/yinx0004/wuzuo/issues), labelled
+All planned work is tracked as [issues](https://github.com/yinx0004/yuanfang/issues), labelled
 by priority (`priority/critical`, `high`, `medium`, `low`) and area.
 
 ## Contributing

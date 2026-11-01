@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yinx0004/wuzuo/internal/agent"
-	"github.com/yinx0004/wuzuo/internal/cases"
-	"github.com/yinx0004/wuzuo/pkg/toolset"
+	"github.com/yinx0004/yuanfang/internal/agent"
+	"github.com/yinx0004/yuanfang/internal/cases"
+	"github.com/yinx0004/yuanfang/pkg/toolset"
 )
 
 // clip limits for the default (non --full) transcript view.
@@ -45,7 +45,7 @@ func printTranscript(w io.Writer, lines []json.RawMessage, full bool) error {
 			if err := json.Unmarshal(raw, &e); err != nil {
 				return err
 			}
-			fmt.Fprintf(w, "case %s (wuzuo %s), started %s\n", e.CaseID, e.Version, e.Time.Format("2006-01-02 15:04:05 MST"))
+			fmt.Fprintf(w, "case %s (yuanfang %s), started %s\n", e.CaseID, e.Version, e.Time.Format("2006-01-02 15:04:05 MST"))
 			if e.ReplayOf != "" {
 				fmt.Fprintf(w, "re-examines case %s\n", e.ReplayOf)
 			}
@@ -115,7 +115,7 @@ func printAgentEntry(w io.Writer, e agent.Entry, clip func(string, int) string, 
 			fmt.Fprintf(w, "    %s: %s\n", label, strings.ReplaceAll(clip(content, clipResult), "\n", " "))
 		}
 		if e.Text != "" {
-			fmt.Fprintf(w, "  wuzuo\n%s\n", indent(clip(e.Text, clipText)))
+			fmt.Fprintf(w, "  yuanfang\n%s\n", indent(clip(e.Text, clipText)))
 		}
 
 	case agent.EntryAssistant:

@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yinx0004/wuzuo/pkg/redact"
+	"github.com/yinx0004/yuanfang/pkg/redact"
 )
 
 // Evidence is one sealed observation.

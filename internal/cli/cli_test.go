@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yinx0004/wuzuo/internal/config"
-	"github.com/yinx0004/wuzuo/internal/llm"
+	"github.com/yinx0004/yuanfang/internal/config"
+	"github.com/yinx0004/yuanfang/internal/llm"
 )
 
 type oneShot struct{ calls int }
@@ -27,9 +27,9 @@ func (o *oneShot) Name() string  { return "fake" }
 func (o *oneShot) Model() string { return "fake-1" }
 func (o *oneShot) Chat(context.Context, *llm.Request) (*llm.Response, error) {
 	o.calls++
-	args := `{"title":"无法判断","summary":"没有可勘验的对象。","cause_of_death":{"statement":"未确认","confidence":"low","evidence":[]},"open_questions":["配置一个目标"]}`
+	args := `{"title":"无法判断","summary":"没有可排查的对象。","root_cause":{"statement":"未确认","confidence":"low","evidence":[]},"open_questions":["配置一个目标"]}`
 	return &llm.Response{
-		Message:    llm.Message{Role: llm.RoleAssistant, ToolCalls: []llm.ToolCall{{ID: "1", Name: "submit_autopsy", Args: json.RawMessage(args)}}},
+		Message:    llm.Message{Role: llm.RoleAssistant, ToolCalls: []llm.ToolCall{{ID: "1", Name: "submit_diagnosis", Args: json.RawMessage(args)}}},
 		StopReason: llm.StopToolUse,
 		Usage:      llm.Usage{InputTokens: 12, CacheReadTokens: 38168, CacheWriteTokens: 500, OutputTokens: 7331},
 	}, nil
@@ -48,10 +48,10 @@ func run(t *testing.T, args ...string) (string, string, error) {
 
 func TestAskPersistsCaseAndReport(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("WUZUO_HOME", home)
-	t.Setenv("WUZUO_CONFIG", filepath.Join(home, "none.yaml"))
-	t.Setenv("WUZUO_MYSQL_DSN", "")
-	t.Setenv("WUZUO_PROVIDER", "anthropic")
+	t.Setenv("YUANFANG_HOME", home)
+	t.Setenv("YUANFANG_CONFIG", filepath.Join(home, "none.yaml"))
+	t.Setenv("YUANFANG_MYSQL_DSN", "")
+	t.Setenv("YUANFANG_PROVIDER", "anthropic")
 	t.Setenv("ANTHROPIC_API_KEY", fakeSecret("api-key"))
 	fake := &oneShot{}
 	newProvider = func(*config.ResolvedLLM) (llm.Provider, error) { return fake, nil }
@@ -82,16 +82,16 @@ func TestAskPersistsCaseAndReport(t *testing.T) {
 	}
 }
 
-// setupInteractive isolates WuZuo's home and fakes a terminal whose user
+// setupInteractive isolates Yuanfang's home and fakes a terminal whose user
 // types answers.
 func setupInteractive(t *testing.T, answers string) (home string) {
 	t.Helper()
 	home = t.TempDir()
-	t.Setenv("WUZUO_HOME", home)
-	t.Setenv("WUZUO_CONFIG", "")
-	t.Setenv("WUZUO_MODEL", "")
-	t.Setenv("WUZUO_PROVIDER", "")
-	t.Setenv("WUZUO_MYSQL_DSN", "")
+	t.Setenv("YUANFANG_HOME", home)
+	t.Setenv("YUANFANG_CONFIG", "")
+	t.Setenv("YUANFANG_MODEL", "")
+	t.Setenv("YUANFANG_PROVIDER", "")
+	t.Setenv("YUANFANG_MYSQL_DSN", "")
 	for _, k := range []string{"ANTHROPIC_AUTH_TOKEN", "OPENAI_API_KEY", "DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY", "ARK_API_KEY"} {
 		t.Setenv(k, "")
 	}
@@ -218,10 +218,10 @@ func TestInitWizardWithKey(t *testing.T) {
 		t.Fatalf("cfg: model=%q targets=%+v", cfg.LLM.Model, cfg.Targets)
 	}
 	tg := cfg.Targets[0]
-	if tg.Name != "orders" || tg.Description != "订单主库" || tg.DSNEnv != "WUZUO_ORDERS_DSN" || tg.Type != "mysql" {
+	if tg.Name != "orders" || tg.Description != "订单主库" || tg.DSNEnv != "YUANFANG_ORDERS_DSN" || tg.Type != "mysql" {
 		t.Fatalf("target: %+v", tg)
 	}
-	if !strings.Contains(errOut, "export WUZUO_ORDERS_DSN=") || strings.Contains(errOut, "export ANTHROPIC_API_KEY") {
+	if !strings.Contains(errOut, "export YUANFANG_ORDERS_DSN=") || strings.Contains(errOut, "export ANTHROPIC_API_KEY") {
 		t.Errorf("next steps:\n%s", errOut)
 	}
 }
@@ -233,7 +233,7 @@ func TestInitWizardWithoutKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"No LLM API key is set yet", "needs ANTHROPIC_API_KEY", "needs DEEPSEEK_API_KEY", "export ANTHROPIC_API_KEY=", "wuzuo toolset check"} {
+	for _, want := range []string{"No LLM API key is set yet", "needs ANTHROPIC_API_KEY", "needs DEEPSEEK_API_KEY", "export ANTHROPIC_API_KEY=", "yuanfang toolset check"} {
 		if !strings.Contains(errOut, want) {
 			t.Errorf("missing %q:\n%s", want, errOut)
 		}
@@ -244,13 +244,13 @@ func TestInitWizardWithoutKey(t *testing.T) {
 	}
 }
 
-func TestBareWuzuoOffersSetup(t *testing.T) {
+func TestBareYuanfangOffersSetup(t *testing.T) {
 	home := setupInteractive(t, "n\n")
 	out, errOut, err := run(t)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(errOut, "No WuZuo configuration found") || !strings.Contains(out, "Available Commands") {
+	if !strings.Contains(errOut, "No Yuanfang configuration found") || !strings.Contains(out, "Available Commands") {
 		t.Fatalf("declined setup should show help:\n%s\n%s", errOut, out)
 	}
 
@@ -263,10 +263,10 @@ func TestBareWuzuoOffersSetup(t *testing.T) {
 		t.Fatalf("cfg: %+v %v", cfg.LLM, err)
 	}
 
-	// With a config present, bare wuzuo only prints help.
+	// With a config present, bare yuanfang only prints help.
 	promptInput = strings.NewReader("")
 	_, errOut, err = run(t)
-	if err != nil || strings.Contains(errOut, "No WuZuo configuration") {
+	if err != nil || strings.Contains(errOut, "No Yuanfang configuration") {
 		t.Fatalf("%v\n%s", err, errOut)
 	}
 	if _, _, err := run(t, "aks"); err == nil || !strings.Contains(err.Error(), "unknown command") {
@@ -281,7 +281,7 @@ func TestAskWithoutKeyExplainsWhatToSet(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	for _, want := range []string{"no LLM API key found", "export ANTHROPIC_API_KEY=", "opus, sonnet", "export DEEPSEEK_API_KEY=", "wuzuo init"} {
+	for _, want := range []string{"no LLM API key found", "export ANTHROPIC_API_KEY=", "opus, sonnet", "export DEEPSEEK_API_KEY=", "yuanfang init"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("missing %q:\n%s", want, err)
 		}
@@ -295,7 +295,7 @@ func TestInitWizardSavesKeyAndDSN(t *testing.T) {
 	password := fakeSecret("db-password") + "@/:)" // characters a DSN must escape correctly
 	home := setupInteractive(t, "\n"+key+"\n\norders\n\n127.0.0.1\n99999\n1\n\n"+password+"\n")
 	t.Setenv("ANTHROPIC_API_KEY", "")
-	t.Setenv("WUZUO_ORDERS_DSN", "")
+	t.Setenv("YUANFANG_ORDERS_DSN", "")
 	_, errOut, err := run(t, "init")
 	if err != nil {
 		t.Fatal(err)
@@ -306,12 +306,12 @@ func TestInitWizardSavesKeyAndDSN(t *testing.T) {
 		"Host or IP",
 		"Port [3306]",
 		"invalid: use a number from 1 to 65535",
-		"User [wuzuo]",
+		"User [yuanfang]",
 		"Password (input hidden)",
-		"Saved WUZUO_ORDERS_DSN to " + filepath.Join(home, "credentials") + " (wuzuo@127.0.0.1:1)",
+		"Saved YUANFANG_ORDERS_DSN to " + filepath.Join(home, "credentials") + " (yuanfang@127.0.0.1:1)",
 		"Files written:",
 		filepath.Join(home, "config.yaml") + "  created: model opus, target orders",
-		filepath.Join(home, "credentials") + "  created: ANTHROPIC_API_KEY, WUZUO_ORDERS_DSN",
+		filepath.Join(home, "credentials") + "  created: ANTHROPIC_API_KEY, YUANFANG_ORDERS_DSN",
 		"could not connect",
 	} {
 		if !strings.Contains(errOut, want) {
@@ -323,7 +323,7 @@ func TestInitWizardSavesKeyAndDSN(t *testing.T) {
 			t.Errorf("secret %q echoed:\n%s", secret, errOut)
 		}
 	}
-	if strings.Contains(errOut, "export ANTHROPIC_API_KEY") || strings.Contains(errOut, "export WUZUO_ORDERS_DSN") {
+	if strings.Contains(errOut, "export ANTHROPIC_API_KEY") || strings.Contains(errOut, "export YUANFANG_ORDERS_DSN") {
 		t.Errorf("entered values should not be listed as todo:\n%s", errOut)
 	}
 
@@ -331,7 +331,7 @@ func TestInitWizardSavesKeyAndDSN(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(creds), "ANTHROPIC_API_KEY="+key) || !strings.Contains(string(creds), "WUZUO_ORDERS_DSN=wuzuo:"+password+"@tcp(127.0.0.1:1)/") {
+	if !strings.Contains(string(creds), "ANTHROPIC_API_KEY="+key) || !strings.Contains(string(creds), "YUANFANG_ORDERS_DSN=yuanfang:"+password+"@tcp(127.0.0.1:1)/") {
 		t.Fatalf("credentials:\n%s", creds)
 	}
 	if st, _ := os.Stat(filepath.Join(home, "credentials")); st.Mode().Perm() != 0o600 {
@@ -436,7 +436,7 @@ func TestModelsFetch(t *testing.T) {
 		newerOpus + " 2026-12-01 newer than \"opus\" (" + opus + ")",
 		opus + " 2026-09-10 ← opus",
 		"! \"fable\" → " + modelID("fable") + " is not in this list",
-		"wuzuo ask -m anthropic/" + newerOpus,
+		"yuanfang ask -m anthropic/" + newerOpus,
 		"models: { opus: { provider: anthropic, model: " + newerOpus + " } }",
 		"deepseek (DEEPSEEK_API_KEY, https://api.deepseek.com)\n ✗ connection refused",
 		`openai, alias "local" (OLLAMA_KEY, http://ollama:11434/v1)`,
@@ -511,8 +511,8 @@ func TestCaseShowTranscript(t *testing.T) {
 	for _, want := range []string{
 		"case " + id, "complaint: why slow", "settings: ", "thinking_summary=true",
 		"model: fake/fake-1", "system prompt: ", "── step 1 ──", "Complaint: why slow",
-		"model reply (", "submit_autopsy", "results (final step; not sent to the model)",
-		"submit_autopsy: accepted", "end: closed after 1 step,",
+		"model reply (", "submit_diagnosis", "results (final step; not sent to the model)",
+		"submit_diagnosis: accepted", "end: closed after 1 step,",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in:\n%s", want, out)
@@ -538,7 +538,7 @@ func TestFailedCaseKeepsTranscript(t *testing.T) {
 		}
 	}
 	_, _, err = run(t, "case", "show", id)
-	if err == nil || !strings.Contains(err.Error(), "wuzuo case show "+id+" --transcript") {
+	if err == nil || !strings.Contains(err.Error(), "yuanfang case show "+id+" --transcript") {
 		t.Fatalf("report-less case should suggest the transcript: %v", err)
 	}
 }
