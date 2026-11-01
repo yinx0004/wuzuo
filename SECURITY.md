@@ -16,6 +16,12 @@ We are most interested in:
   evidence locker despite redaction;
 - tampering with sealed evidence going undetected.
 
+## Where secrets are stored
+
+API keys and DSNs come from environment variables or from `~/.wuzuo/credentials`, which
+the setup wizard writes with mode 0600. `config.yaml` never contains secrets. Report
+any path by which a secret ends up elsewhere: logs, case files, the config, or the model.
+
 ## What WuZuo sends to the model
 
 The complaint you type, target names and descriptions, and redacted probe output. Probe

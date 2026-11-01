@@ -54,17 +54,22 @@ func ensureModel(cmd *cobra.Command, cfg *config.Config, configPath, override st
 	if err != nil {
 		return "", err
 	}
-	save, err := confirm(in, errOut, fmt.Sprintf("Save %q as the default model in %s?", chosen.Name, configPath), true)
+	save, err := confirm(in, errOut, fmt.Sprintf("Save %q as the default model in %s?", chosen.Name, displayPath(configPath)), true)
 	if err != nil {
 		return "", err
 	}
 	if save {
+		existed := fileExists(configPath)
 		if err := config.SaveDefaultModel(configPath, chosen.Name, chosen.Provider); err != nil {
 			return "", fmt.Errorf("save default model: %w", err)
 		}
-		fmt.Fprintf(errOut, "Saved. Change it any time in %s, or per run with -m.\n\n", configPath)
+		if existed {
+			fmt.Fprintf(errOut, "Updated %s: llm.model = %s. Change it there, or per run with -m.\n\n", displayPath(configPath), chosen.Name)
+		} else {
+			fmt.Fprintf(errOut, "Created %s with llm.model = %s. Change it there, or per run with -m.\n\n", displayPath(configPath), chosen.Name)
+		}
 	} else {
-		fmt.Fprintf(errOut, "Not saved. Next time use -m %s, or set llm.model in %s.\n\n", chosen.Name, configPath)
+		fmt.Fprintf(errOut, "Not saved; no file was changed. Next time use -m %s, or set llm.model in %s.\n\n", chosen.Name, displayPath(configPath))
 	}
 	return chosen.Name, nil
 }

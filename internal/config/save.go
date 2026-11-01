@@ -16,7 +16,8 @@ import (
 // the given targets (an commented example when there are none).
 func Template(model string, targets []Target) string {
 	return fmt.Sprintf(`# WuZuo configuration. Reference: docs/configuration.md
-# Secrets are never stored here: point to environment variables instead.
+# No secrets here: API keys and DSNs live in environment variables or in
+# ~/.wuzuo/credentials (written by wuzuo init, mode 0600).
 
 llm:
   # A short name from `+"`wuzuo models`"+` (opus, sonnet, deepseek, qwen, ...), an alias

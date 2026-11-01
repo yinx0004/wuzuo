@@ -21,19 +21,39 @@ WuZuo **不需要配置文件也能运行**，只设置环境变量就够了。�
 直接运行 `wuzuo`（不带参数）。如果还没有配置文件，它会询问是否现在设置；`wuzuo init` 则直接进入同样的步骤（加 `--force` 可覆盖已有文件）：
 
 1. 选择默认模型。已设置 key 的模型排在前面；一个 key 都没有时，会列出全部内置模型，并注明各自需要哪个 key。
-2. 可选：添加一个 MySQL 目标，填写名字、给模型看的描述，以及存放连接串的环境变量名。
-3. 写入配置文件（权限 0600），并列出剩下要做的事，例如：
+2. 粘贴该模型的 API key（如果对应的环境变量已经设置，会跳过这一步）。输入不回显，直接回车可以跳过。
+3. 可选：添加一个 MySQL 目标。先填名字和给模型看的描述，再逐项填写连接信息：主机或 IP、端口（默认 3306）、账号（默认 `wuzuo`）、密码（不回显）。WuZuo 用这几项拼出 DSN，尝试连接，并做和 `wuzuo toolset check` 一样的检查。主机一栏直接回车可以跳过连接设置。需要 TLS 或 Unix socket 时，事后在 credentials 文件里修改 DSN 即可（见 [MySQL 连接串](#mysql-连接串)）。
+4. 写入配置文件，列出新建或修改了哪些文件，以及被跳过、还需要处理的项，例如：
 
 ```text
+Files written:
+  ~/.wuzuo/config.yaml   created: model opus, target orders-primary
+  ~/.wuzuo/credentials   created: ANTHROPIC_API_KEY
+
 Next steps:
-  export ANTHROPIC_API_KEY=...        # API key for opus
-  export WUZUO_ORDERS_PRIMARY_DSN='wuzuo:<password>@tcp(<host>:3306)/'   # account: docs/mysql-privileges.sql
-  (add the export lines to your shell profile to keep them)
+  export WUZUO_ORDERS_PRIMARY_DSN='user:password@tcp(host:3306)/'   # account: docs/mysql-privileges.sql
+  (or run `wuzuo init --force` again to enter them; values go to ~/.wuzuo/credentials)
   wuzuo toolset check                  # verify model, connectivity and privileges
   wuzuo ask "describe what is wrong"
 ```
 
-设置过程不会询问 API key 或密码。不在终端里运行时，`wuzuo init` 会直接写入带注释的模板，并使用默认模型。
+API key 和 DSN 不会写进 `config.yaml`，而是存进 credentials 文件（见[密钥](#密钥)）。不在终端里运行时，`wuzuo init` 不会询问任何内容，只写入带注释的模板，并使用默认模型。
+
+### 密钥
+
+`config.yaml` 只存放配置，可以放心分享。密钥来自环境变量，或者来自设置向导创建的 **`$WUZUO_HOME/credentials`**（默认 `~/.wuzuo/credentials`）：
+
+```text
+# WuZuo secrets: API keys and database DSNs, one KEY=VALUE per line.
+ANTHROPIC_API_KEY=sk-ant-...
+WUZUO_ORDERS_PRIMARY_DSN=wuzuo:...@tcp(10.0.0.5:3306)/
+```
+
+- 启动时，WuZuo 会把每一行导出为环境变量；如果同名环境变量已经设置，则跳过该行。**已经 export 的环境变量优先级始终高于这个文件。**
+- 再次运行设置（`wuzuo init --force`）时，会显示文件里已经保存了哪些值，替换每一项之前都会先询问。
+- 文件创建时权限为 0600；如果其他用户可读，WuZuo 会给出警告。
+- 可以手动编辑：每行可以以 `export ` 开头，`#` 开头的是注释。
+- 要删除某个密钥，删掉对应那一行即可。
 
 ## 只用环境变量
 
@@ -236,7 +256,7 @@ safety:
 | 变量 | 用途 |
 |---|---|
 | `WUZUO_CONFIG` | 配置文件路径 |
-| `WUZUO_HOME` | 默认配置文件和案件的根目录（默认 `~/.wuzuo`） |
+| `WUZUO_HOME` | 默认配置文件、`credentials` 和案件的根目录（默认 `~/.wuzuo`） |
 | `WUZUO_PROVIDER` | 覆盖 `llm.provider` |
 | `WUZUO_MODEL` | 覆盖 `llm.model`（可以写任何模型名；`-m` 优先级更高） |
 | `WUZUO_MYSQL_DSN` | 免配置的 MySQL 目标，名为 `mysql` |
@@ -266,7 +286,8 @@ wuzuo toolset run mysql_overview   # 手动执行一个探针
 | `provider openai: no model selected` | 用 `-m openai/<ID>`、设置 `OPENAI_MODEL`（ark 用 `ARK_MODEL`），或定义别名 |
 | `provider deepseek: set DEEPSEEK_API_KEY` | 选中的名字属于一个还没设置 key 的服务商，用 `wuzuo models` 查看 |
 | `api_key_env: environment variable X is not set` | 导出别名或 `llm.api_key_env` 指定的变量 |
-| `target "x": environment variable Y is not set` | 导出 `dsn_env` 指定的变量 |
+| `target "x": environment variable Y is not set` | 导出 `dsn_env` 指定的变量，或把它写进 credentials 文件 |
+| `warning: … credentials is accessible by other users` | 执行 `chmod 600 ~/.wuzuo/credentials` |
 | `read config: … no such file` | `-c` 或 `WUZUO_CONFIG` 指定的文件不存在 |
 | `unknown target "x"` | `-t` 写的名字和 `targets[].name` 对不上 |
 | `mysql_explain is disabled` | 设置 `safety.allow_explain: true` |
