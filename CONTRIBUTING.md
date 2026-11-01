@@ -11,6 +11,7 @@ make build              # bin/wuzuo
 make test               # unit tests (no database or LLM needed)
 make lab-up             # disposable MySQL 8.4 on :13306
 make test-integration   # probes against the lab
+make lab-stop           # pause the lab (keeps data); make lab-destroy removes it
 make lint
 ```
 
@@ -32,7 +33,7 @@ Probes live in `toolsets/<name>/` and implement `pkg/toolset.Tool`. A good probe
 ## Adding a toolset
 
 Implement `pkg/toolset.Toolset`, add a target type in `internal/config`, wire it in
-`internal/cli/toolsets.go`, and add a lab under `deploy/lab`.
+`internal/cli/toolsets.go`, and add a lab under `lab`.
 
 ## Commits and pull requests
 

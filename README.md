@@ -131,15 +131,18 @@ every field and environment variable, model selection rules, and troubleshooting
 
 ## Try it on a staged incident
 
-The lab is a disposable MySQL 8.4 with a seeded `shop` schema, plus scripts that stage
-real incidents:
+`lab/` is a local test environment for development and demos, not something to deploy:
+a disposable MySQL 8.4 in Docker with a seeded `shop` schema, plus scripts that stage
+real incidents. Never point the scripts at a real server.
 
 ```bash
 make lab-up && make build
 eval "$(make -s lab-env)"
-deploy/lab/scenarios/lock-wait.sh        # also: slow-query.sh, deadlock.sh, conn-pileup.sh
+lab/scenarios/lock-wait.sh        # also: slow-query.sh, deadlock.sh, conn-pileup.sh
 ./bin/wuzuo ask "updates to orders are hanging" -t lab
-deploy/lab/scenarios/reset.sh
+lab/scenarios/reset.sh                  # end the staged incident
+make lab-stop                           # pause the lab, keep its data
+make lab-destroy                        # remove it completely
 ```
 
 ## Commands
@@ -205,7 +208,7 @@ internal/cases       case storage under ~/.wuzuo/cases
 pkg/toolset          public toolset/probe interface for extensions
 pkg/redact           SQL literal and secret redaction
 toolsets/mysql       MySQL 8.0+ probes and the read-only guard
-deploy/lab           disposable MySQL plus incident scripts
+lab                  local test lab for development: disposable MySQL plus incident scripts
 ```
 
 ## Roadmap

@@ -3,7 +3,7 @@
 ## How it was tested
 - [ ] `make test`
 - [ ] `make test-integration` (if a toolset changed)
-- [ ] Tried against the lab (`deploy/lab`) — scenario:
+- [ ] Tried against the lab (`lab`) — scenario:
 
 ## Checklist
 - [ ] New probes are read-only and list the privileges they need

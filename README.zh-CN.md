@@ -54,12 +54,16 @@ wuzuo ask "订单库 10 点以后变慢了"
 
 ## 在靶场里试一试
 
+`lab/` 是给开发和演示用的本地测试环境，不是部署方式：Docker 里跑一个一次性的 MySQL 8.4，带种子数据 `shop` 库，再配上几个模拟真实故障的脚本。不要把这些脚本用在真实服务器上。
+
 ```bash
 make lab-up && make build
 eval "$(make -s lab-env)"
-deploy/lab/scenarios/lock-wait.sh          # 还有 slow-query.sh、deadlock.sh、conn-pileup.sh
+lab/scenarios/lock-wait.sh          # 还有 slow-query.sh、deadlock.sh、conn-pileup.sh
 ./bin/wuzuo ask "orders 表的更新全卡住了" -t lab
-deploy/lab/scenarios/reset.sh
+lab/scenarios/reset.sh                     # 结束正在模拟的故障
+make lab-stop                              # 暂停靶场，保留数据
+make lab-destroy                           # 彻底删除靶场
 ```
 
 ## 命令

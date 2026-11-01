@@ -6,4 +6,4 @@ coverage.*
 .DS_Store
 .idea/
 .vscode/
-deploy/lab/.env
+lab/.env

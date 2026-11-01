@@ -3,11 +3,12 @@
 # server.
 #
 #   make lab-up                        # generate passwords, start and seed
-#   deploy/lab/scenarios/lock-wait.sh  # stage an incident
+#   lab/scenarios/lock-wait.sh  # stage an incident
 #   eval "$(make -s lab-env)" && wuzuo ask "orders updates are hanging" -t lab
-#   make lab-down
+#   make lab-stop                      # pause, keep data
+#   make lab-destroy                   # remove container, data and passwords
 #
-# Passwords are random per checkout and live only in deploy/lab/.env
+# Passwords are random per checkout and live only in lab/.env
 # (gitignored), which `make lab-up` creates.
 
 services:
@@ -15,9 +16,9 @@ services:
     image: mysql:${LAB_MYSQL_VERSION:-8.4}
     container_name: wuzuo-lab-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${LAB_ROOT_PASSWORD:?run make lab-up to generate deploy/lab/.env}
-      LAB_WUZUO_PASSWORD: ${LAB_WUZUO_PASSWORD:?run make lab-up to generate deploy/lab/.env}
-      LAB_APP_PASSWORD: ${LAB_APP_PASSWORD:?run make lab-up to generate deploy/lab/.env}
+      MYSQL_ROOT_PASSWORD: ${LAB_ROOT_PASSWORD:?run make lab-up to generate lab/.env}
+      LAB_WUZUO_PASSWORD: ${LAB_WUZUO_PASSWORD:?run make lab-up to generate lab/.env}
+      LAB_APP_PASSWORD: ${LAB_APP_PASSWORD:?run make lab-up to generate lab/.env}
     command:
       - --performance-schema-consumer-events-statements-history=ON
       - --innodb-lock-wait-timeout=300
