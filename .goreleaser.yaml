@@ -48,6 +48,33 @@ dockers_v2:
       org.opencontainers.image.source: https://github.com/yinx0004/wuzuo
       org.opencontainers.image.licenses: Apache-2.0
 
+# brew install yinx0004/tap/wuzuo
+homebrew_casks:
+  - name: wuzuo
+    repository:
+      owner: yinx0004
+      name: homebrew-tap
+      # Fine-grained token with "Contents: read and write" on homebrew-tap only.
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Casks
+    homepage: https://github.com/yinx0004/wuzuo
+    description: AI forensic examiner for production database incidents
+    license: Apache-2.0
+    # Pre-releases (v0.1.0-alpha.1) are not published to the tap.
+    skip_upload: auto
+    commit_author:
+      name: Sherry Yin
+      email: yinx0004@gmail.com
+    commit_msg_template: "wuzuo {{ .Tag }}"
+    hooks:
+      post:
+        # The binaries are not signed or notarized; without this, macOS
+        # Gatekeeper refuses to run a binary installed from a cask.
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/wuzuo"]
+          end
+
 changelog:
   use: github
   groups:
