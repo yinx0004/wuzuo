@@ -104,7 +104,7 @@ make lab-destroy                           # 彻底删除靶场
 - **[v0.2.0](https://github.com/yinx0004/wuzuo/milestone/2)**：MongoDB 工具集，扩展 MySQL 的覆盖面
 - 之后：Prometheus 等数据源、HTTP 服务、飞书 / Slack 机器人、对接告警自动调查
 
-所有计划都记录在 [issues](https://github.com/yinx0004/wuzuo/issues) 里，用 `priority/P0` 到 `priority/P3` 标注优先级。
+所有计划都记录在 [issues](https://github.com/yinx0004/wuzuo/issues) 里，按优先级（`priority/critical`、`high`、`medium`、`low`）和模块打标签。
 
 ## 参与贡献
 
