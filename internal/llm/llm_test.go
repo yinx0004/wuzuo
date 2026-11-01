@@ -197,3 +197,17 @@ func TestModelNotFoundIsExplained(t *testing.T) {
 		t.Fatalf("401 must not look like a missing model: %v", err)
 	}
 }
+
+func TestOpenAIUsageSplitsCachedTokens(t *testing.T) {
+	srv := serve(t, 200, `{"id":"c","object":"chat.completion","created":1,"model":"m",
+		"choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"ok"}}],
+		"usage":{"prompt_tokens":1000,"completion_tokens":20,"total_tokens":1020,"prompt_tokens_details":{"cached_tokens":800}}}`)
+	resp, err := NewOpenAI(OpenAIOptions{Model: "m", APIKey: "k", BaseURL: srv.URL}).Chat(context.Background(), &Request{Messages: []Message{{Role: RoleUser, Text: "hi"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u := resp.Usage
+	if u.InputTokens != 200 || u.CacheReadTokens != 800 || u.TotalInput() != 1000 {
+		t.Fatalf("usage = %+v (total %d)", u, u.TotalInput())
+	}
+}

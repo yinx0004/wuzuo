@@ -84,8 +84,10 @@ func (p *OpenAI) Chat(ctx context.Context, req *Request) (*Response, error) {
 			Text:   choice.Message.Content,
 			Native: choice.Message.ToParam(),
 		},
+		// prompt_tokens includes cached tokens; split them so the fields do
+		// not overlap (see Usage).
 		Usage: Usage{
-			InputTokens:     resp.Usage.PromptTokens,
+			InputTokens:     resp.Usage.PromptTokens - resp.Usage.PromptTokensDetails.CachedTokens,
 			OutputTokens:    resp.Usage.CompletionTokens,
 			CacheReadTokens: resp.Usage.PromptTokensDetails.CachedTokens,
 		},

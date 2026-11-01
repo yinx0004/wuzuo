@@ -8,6 +8,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/yinx0004/wuzuo/internal/evidence"
 	"github.com/yinx0004/wuzuo/internal/llm"
@@ -149,5 +150,41 @@ func TestInvestigateGivesUpWithoutVerdict(t *testing.T) {
 	_, err := Investigate(context.Background(), Options{Provider: p, Locker: locker}, Input{Question: "q"})
 	if !errors.Is(err, ErrNoVerdict) {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+type sleepyTool struct {
+	name  string
+	delay time.Duration
+}
+
+func (t sleepyTool) Spec() toolset.Spec {
+	return toolset.Spec{Name: t.name, Description: "test probe"}
+}
+func (t sleepyTool) Run(context.Context, json.RawMessage) (*toolset.Result, error) {
+	time.Sleep(t.delay)
+	return &toolset.Result{Content: "ok"}, nil
+}
+
+// Probes in one turn run concurrently; each must record its own run time,
+// not the time until the slowest probe finished.
+func TestConcurrentProbesRecordOwnDuration(t *testing.T) {
+	p := &scripted{turns: []llm.Message{
+		{ToolCalls: []llm.ToolCall{call("1", "fast", `{}`), call("2", "slow", `{}`)}},
+		{ToolCalls: []llm.ToolCall{call("3", "submit_autopsy", `{"title":"t","summary":"s","cause_of_death":{"statement":"x","confidence":"low","evidence":["E1"]}}`)}},
+	}}
+	locker, _ := evidence.NewLocker("", true)
+	_, err := Investigate(context.Background(), Options{
+		Provider: p,
+		Tools:    []toolset.Tool{sleepyTool{"fast", 0}, sleepyTool{"slow", 300 * time.Millisecond}},
+		Locker:   locker,
+	}, Input{Question: "q"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fast, _ := locker.Get("E1")
+	slow, _ := locker.Get("E2")
+	if fast.DurationMS > 100 || slow.DurationMS < 290 {
+		t.Fatalf("fast=%dms slow=%dms", fast.DurationMS, slow.DurationMS)
 	}
 }

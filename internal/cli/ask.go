@@ -153,7 +153,12 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 	if res != nil {
 		c.Steps = res.Steps
 		c.Hypotheses = res.Hypotheses
-		c.Tokens = cases.Tokens{Input: res.Usage.InputTokens, Output: res.Usage.OutputTokens, CacheRead: res.Usage.CacheReadTokens}
+		c.Tokens = cases.Tokens{
+			Input:      res.Usage.InputTokens,
+			Output:     res.Usage.OutputTokens,
+			CacheRead:  res.Usage.CacheReadTokens,
+			CacheWrite: res.Usage.CacheWriteTokens,
+		}
 	}
 	if runErr != nil {
 		c.Status, c.Error = cases.StatusFailed, runErr.Error()
@@ -169,8 +174,8 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 	if err := store.SaveReport(c.ID, res.Autopsy, md); err != nil {
 		return err
 	}
-	fmt.Fprintf(progress, "closed in %s: %d steps, %d evidence, %d in / %d out tokens\n",
-		c.Finished.Sub(c.Started).Round(time.Second), c.Steps, len(locker.All()), c.Tokens.Input, c.Tokens.Output)
+	fmt.Fprintf(progress, "closed in %s: %d steps, %d evidence, %s\n",
+		c.Finished.Sub(c.Started).Round(time.Second), c.Steps, len(locker.All()), tokenSummary(c.Tokens))
 	fmt.Fprintf(progress, "case files: %s/ (case.json, report.md, report.json, evidence/)\n\n", displayPath(store.Dir(c.ID)))
 	return printReport(cmd.OutOrStdout(), out.json, res.Autopsy, md)
 }
@@ -178,7 +183,7 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 func metaOf(c *cases.Case) report.Meta {
 	return report.Meta{
 		CaseID: c.ID, Question: c.Question, Targets: c.Targets, Provider: c.Provider, Model: c.Model,
-		Started: c.Started, Finished: c.Finished, Steps: c.Steps, Tokens: c.Tokens.Input + c.Tokens.Output,
+		Started: c.Started, Finished: c.Finished, Steps: c.Steps, Tokens: c.Tokens.TotalInput() + c.Tokens.Output,
 	}
 }
 
@@ -211,4 +216,14 @@ func printEvent(w io.Writer, e agent.Event) {
 	case agent.EventNarration:
 		fmt.Fprintf(w, "  model       %s\n", toolset.Clip(strings.Join(strings.Fields(e.Text), " "), 240))
 	}
+}
+
+// tokenSummary reports all input, including the share served from the prompt
+// cache, and output.
+func tokenSummary(t cases.Tokens) string {
+	in := fmt.Sprintf("%d in", t.TotalInput())
+	if cached := t.CacheRead + t.CacheWrite; cached > 0 {
+		in = fmt.Sprintf("%d in (%d read from cache, %d written to cache)", t.TotalInput(), t.CacheRead, t.CacheWrite)
+	}
+	return fmt.Sprintf("tokens: %s / %d out", in, t.Output)
 }

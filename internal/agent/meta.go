@@ -98,7 +98,7 @@ func (inv *investigation) runMeta(step int, c llm.ToolCall) (content string, isE
 		inv.mu.Lock()
 		h.Status, h.Reason, h.Evidence = "ruled_out", a.Reason, a.Evidence
 		inv.mu.Unlock()
-		inv.emit(Event{Kind: EventRuledOut, Step: step, Text: fmt.Sprintf("%s %s — %s", h.ID, h.Name, a.Reason)})
+		inv.emit(Event{Kind: EventRuledOut, Step: step, Text: fmt.Sprintf("%s %s: %s", h.ID, h.Name, a.Reason)})
 		return fmt.Sprintf("%s ruled out.", h.ID), false, false
 
 	case toolReadEvidence:

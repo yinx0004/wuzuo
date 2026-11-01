@@ -3,6 +3,8 @@
 package evidence
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
@@ -18,15 +20,20 @@ func TestLockerRecordPersistAndVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e1, err := l.Record("mysql_processlist", "prod", json.RawMessage(`{"target":"prod"}`), "conn root:pw@tcp(db:3306)/x", nil, time.Now())
+	password := fakeSecret()
+	now := time.Now()
+	e1, err := l.Record("mysql_processlist", "prod", json.RawMessage(`{"target":"prod"}`), "conn root:"+password+"@tcp(db:3306)/x", nil, now, now.Add(42*time.Millisecond))
 	if err != nil {
 		t.Fatal(err)
 	}
-	e2, _ := l.Record("mysql_replication", "prod", nil, "", errors.New("access denied"), time.Now())
+	e2, _ := l.Record("mysql_replication", "prod", nil, "", errors.New("access denied"), now, now)
+	if e1.DurationMS != 42 {
+		t.Errorf("duration = %dms, want 42", e1.DurationMS)
+	}
 	if e1.ID != "E1" || e2.ID != "E2" {
 		t.Fatalf("ids = %s %s", e1.ID, e2.ID)
 	}
-	if strings.Contains(e1.Content, "pw@") {
+	if strings.Contains(e1.Content, password) {
 		t.Fatalf("secret not redacted: %s", e1.Content)
 	}
 	if got := l.Missing([]string{"E1", "e2", "E9"}); len(got) != 1 || got[0] != "E9" {
@@ -61,4 +68,10 @@ func TestExcerpt(t *testing.T) {
 	if e.Excerpt(0) != e.Content {
 		t.Fatal("max=0 should return everything")
 	}
+}
+
+func fakeSecret() string {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return "fake" + hex.EncodeToString(b)
 }
