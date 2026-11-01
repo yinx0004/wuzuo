@@ -86,11 +86,16 @@ It holds an X record lock on orders.PRIMARY that every later update of that row 
 ### 1. Install
 
 ```bash
-go install github.com/yinx0004/wuzuo/cmd/wuzuo@latest
+brew install yinx0004/tap/wuzuo                       # macOS and Linux
 ```
 
-Prebuilt binaries and a container image (`ghcr.io/yinx0004/wuzuo`) are published with
-each release.
+```bash
+go install github.com/yinx0004/wuzuo/cmd/wuzuo@latest  # with Go
+```
+
+Each release also publishes binaries for Linux, macOS and Windows on the
+[releases page](https://github.com/yinx0004/wuzuo/releases), and an image at
+`ghcr.io/yinx0004/wuzuo`. Homebrew gets stable releases only, not pre-releases.
 
 ### 2. Set up
 
