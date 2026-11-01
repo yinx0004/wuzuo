@@ -48,6 +48,19 @@ and writes an autopsy report where every conclusion cites sealed evidence.`,
 		Version:       fmt.Sprintf("%s (commit %s, built %s)", version.Version, version.Commit, version.Date),
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		// Secrets saved by setup live in $WUZUO_HOME/credentials; export them
+		// before any command runs. Variables already set take precedence.
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			loaded, warning, err := config.LoadCredentials(config.CredentialsPath())
+			fromCredentials = map[string]bool{}
+			for _, k := range loaded {
+				fromCredentials[k] = true
+			}
+			if warning != "" {
+				fmt.Fprintln(cmd.ErrOrStderr(), "warning:", warning)
+			}
+			return err
+		},
 		// Bare `wuzuo`: on first use in a terminal, offer setup; otherwise help.
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			path := g.configPathOrDefault()

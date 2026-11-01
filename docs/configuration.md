@@ -5,7 +5,7 @@
 WuZuo runs with **no configuration file at all**. Environment variables are enough.
 A config file adds several targets, a fixed model, and safety settings.
 
-- [Where the config file lives](#where-the-config-file-lives)
+- [Where the config file lives](#where-the-config-file-lives): first-time setup, secrets
 - [Running from environment variables only](#running-from-environment-variables-only)
 - [Choosing the model](#choosing-the-model): short names, your own aliases, the first-run prompt
 - [Targets](#targets)
@@ -36,21 +36,52 @@ Run `wuzuo` with no arguments. If there is no config file yet, it offers to set 
 
 1. Choose the default model. Models whose API key is already set are offered first. If
    no key is set yet, every built-in model is listed with the key it needs.
-2. Optionally add a MySQL target: a name, a description for the model, and the name of
-   the environment variable that will hold its DSN.
-3. WuZuo writes the config file (mode 0600) and lists what is left, for example:
+2. Paste that model's API key, unless the key variable is already set. Input is hidden;
+   Enter skips.
+3. Optionally add a MySQL target: a name and a description for the model, then the
+   connection one field at a time: host or IP, port (default 3306), user (default
+   `wuzuo`) and password (hidden). WuZuo builds the DSN from these, tries to connect,
+   and runs the same checks as `wuzuo toolset check`. Enter on the host skips the
+   connection. For TLS or a Unix socket, edit the DSN in the credentials file afterwards
+   (see [MySQL connection strings](#mysql-connection-strings)).
+4. WuZuo writes the config file, lists every file it created or changed, and lists
+   anything you skipped, for example:
 
 ```text
+Files written:
+  ~/.wuzuo/config.yaml   created: model opus, target orders-primary
+  ~/.wuzuo/credentials   created: ANTHROPIC_API_KEY
+
 Next steps:
-  export ANTHROPIC_API_KEY=...        # API key for opus
-  export WUZUO_ORDERS_PRIMARY_DSN='wuzuo:<password>@tcp(<host>:3306)/'   # account: docs/mysql-privileges.sql
-  (add the export lines to your shell profile to keep them)
+  export WUZUO_ORDERS_PRIMARY_DSN='user:password@tcp(host:3306)/'   # account: docs/mysql-privileges.sql
+  (or run `wuzuo init --force` again to enter them; values go to ~/.wuzuo/credentials)
   wuzuo toolset check                  # verify model, connectivity and privileges
   wuzuo ask "describe what is wrong"
 ```
 
-Setup never asks for API keys or passwords. Without a terminal, `wuzuo init` writes the
-commented starter file with the default model instead.
+The API key and DSN are not written to `config.yaml`. They go to the credentials file
+(see [Secrets](#secrets)). Without a terminal, `wuzuo init` writes the commented starter
+file with the default model and asks nothing.
+
+### Secrets
+
+`config.yaml` holds settings only and is safe to share. Secrets come from environment
+variables, or from **`$WUZUO_HOME/credentials`** (default `~/.wuzuo/credentials`), which
+setup creates:
+
+```text
+# WuZuo secrets: API keys and database DSNs, one KEY=VALUE per line.
+ANTHROPIC_API_KEY=sk-ant-...
+WUZUO_ORDERS_PRIMARY_DSN=wuzuo:...@tcp(10.0.0.5:3306)/
+```
+
+- At startup WuZuo exports each line as an environment variable, unless a variable with
+  that name is already set. **An exported variable always wins over the file.**
+- Running setup again (`wuzuo init --force`) shows which values are already saved in
+  the file and asks before replacing each one.
+- The file is created with mode 0600. WuZuo warns if other users can read it.
+- You can edit it by hand. Lines may start with `export `; `#` starts a comment.
+- To remove a secret, delete its line.
 
 ## Running from environment variables only
 
@@ -282,7 +313,7 @@ safety:
 | Variable | Purpose |
 |---|---|
 | `WUZUO_CONFIG` | Config file path |
-| `WUZUO_HOME` | Base directory for the default config file and cases (default `~/.wuzuo`) |
+| `WUZUO_HOME` | Base directory for the default config file, `credentials` and cases (default `~/.wuzuo`) |
 | `WUZUO_PROVIDER` | Override `llm.provider` |
 | `WUZUO_MODEL` | Override `llm.model` (any model name; `-m` wins over it) |
 | `WUZUO_MYSQL_DSN` | Zero-config MySQL target named `mysql` |
@@ -312,7 +343,8 @@ wuzuo toolset run mysql_overview   # run one probe by hand
 | `provider openai: no model selected` | Use `-m openai/<id>`, set `OPENAI_MODEL` (`ARK_MODEL` for ark), or define an alias |
 | `provider deepseek: set DEEPSEEK_API_KEY` | The chosen name belongs to a provider whose key is not set; see `wuzuo models` |
 | `api_key_env: environment variable X is not set` | Export the variable named in the alias or in `llm.api_key_env` |
-| `target "x": environment variable Y is not set` | Export the DSN variable named in `dsn_env` |
+| `target "x": environment variable Y is not set` | Export the DSN variable named in `dsn_env`, or add it to the credentials file |
+| `warning: … credentials is accessible by other users` | `chmod 600 ~/.wuzuo/credentials` |
 | `read config: … no such file` | A path given with `-c` or `WUZUO_CONFIG` does not exist |
 | `unknown target "x"` | The `-t` name does not match any `targets[].name` |
 | `mysql_explain is disabled` | Set `safety.allow_explain: true` |

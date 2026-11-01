@@ -158,7 +158,7 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 	if runErr != nil {
 		c.Status, c.Error = cases.StatusFailed, runErr.Error()
 		_ = store.Save(c)
-		return fmt.Errorf("case %s: %w (evidence kept in %s)", c.ID, runErr, store.Dir(c.ID))
+		return fmt.Errorf("case %s: %w (case files kept in %s)", c.ID, runErr, displayPath(store.Dir(c.ID)))
 	}
 	c.Status = cases.StatusClosed
 	if err := store.Save(c); err != nil {
@@ -169,8 +169,9 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 	if err := store.SaveReport(c.ID, res.Autopsy, md); err != nil {
 		return err
 	}
-	fmt.Fprintf(progress, "closed in %s: %d steps, %d evidence, %d in / %d out tokens, saved to %s\n\n",
-		c.Finished.Sub(c.Started).Round(time.Second), c.Steps, len(locker.All()), c.Tokens.Input, c.Tokens.Output, store.Dir(c.ID))
+	fmt.Fprintf(progress, "closed in %s: %d steps, %d evidence, %d in / %d out tokens\n",
+		c.Finished.Sub(c.Started).Round(time.Second), c.Steps, len(locker.All()), c.Tokens.Input, c.Tokens.Output)
+	fmt.Fprintf(progress, "case files: %s/ (case.json, report.md, report.json, evidence/)\n\n", displayPath(store.Dir(c.ID)))
 	return printReport(cmd.OutOrStdout(), out.json, res.Autopsy, md)
 }
 

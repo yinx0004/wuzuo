@@ -25,7 +25,7 @@
 go install github.com/yinx0004/wuzuo/cmd/wuzuo@latest
 ```
 
-**首次设置**：直接运行 `wuzuo`。第一次使用时，它会带你选择模型、添加 MySQL 目标，写好 `~/.wuzuo/config.yaml`，并列出还需要 export 的环境变量。下面是这些设置的手动方式。
+**首次设置**：直接运行 `wuzuo`。第一次使用时，它会带你选择模型、输入 API key、添加 MySQL 目标（逐项填写主机、端口、账号、密码），然后测试连接。配置写入 `~/.wuzuo/config.yaml`；key 和 DSN 存进 `~/.wuzuo/credentials`（权限 0600），已经 export 的环境变量优先级更高。下面是这些设置的手动方式。
 
 **选择模型**：WuZuo 会从环境变量自动识别，设置以下任意一组即可，不需要写配置。
 

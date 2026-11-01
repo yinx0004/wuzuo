@@ -106,7 +106,7 @@ func TestAskPromptsForModelAndSaves(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"No model is configured yet.", "opus", "(default)", "deepseek, deepseek-r — set DEEPSEEK_API_KEY", "Saved."} {
+	for _, want := range []string{"No model is configured yet.", "opus", "(default)", "deepseek, deepseek-r — set DEEPSEEK_API_KEY", "Created " + filepath.Join(home, "config.yaml") + " with llm.model = sonnet"} {
 		if !strings.Contains(errOut, want) {
 			t.Errorf("prompt output missing %q:\n%s", want, errOut)
 		}
@@ -133,7 +133,7 @@ func TestAskPromptDefaultAndDecline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(errOut, "Not saved. Next time use -m opus") {
+	if !strings.Contains(errOut, "Not saved; no file was changed. Next time use -m opus") {
 		t.Errorf("output:\n%s", errOut)
 	}
 	if _, err := os.Stat(filepath.Join(home, "config.yaml")); !os.IsNotExist(err) {
@@ -218,7 +218,7 @@ func TestInitWizardWithKey(t *testing.T) {
 }
 
 func TestInitWizardWithoutKey(t *testing.T) {
-	home := setupInteractive(t, "\nn\n") // default model, no target
+	home := setupInteractive(t, "\n\nn\n") // default model, skip the key, no target
 	t.Setenv("ANTHROPIC_API_KEY", "")
 	_, errOut, err := run(t, "init")
 	if err != nil {
@@ -276,5 +276,109 @@ func TestAskWithoutKeyExplainsWhatToSet(t *testing.T) {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("missing %q:\n%s", want, err)
 		}
+	}
+}
+
+func TestInitWizardSavesKeyAndDSN(t *testing.T) {
+	// default model, paste key, add target, name, no description,
+	// host, bad port, port, default user, password with special characters
+	home := setupInteractive(t, "\nsk-ant-test-0123456789\n\norders\n\n127.0.0.1\n99999\n1\n\np@ss/w:rd)\n")
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	t.Setenv("WUZUO_ORDERS_DSN", "")
+	_, errOut, err := run(t, "init")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"Paste the API key for opus, saved as ANTHROPIC_API_KEY",
+		"Saved ANTHROPIC_API_KEY to " + filepath.Join(home, "credentials") + " (sk-ant…6789)",
+		"Host or IP",
+		"Port [3306]",
+		"invalid: use a number from 1 to 65535",
+		"User [wuzuo]",
+		"Password (input hidden)",
+		"Saved WUZUO_ORDERS_DSN to " + filepath.Join(home, "credentials") + " (wuzuo@127.0.0.1:1)",
+		"Files written:",
+		filepath.Join(home, "config.yaml") + "  created: model opus, target orders",
+		filepath.Join(home, "credentials") + "  created: ANTHROPIC_API_KEY, WUZUO_ORDERS_DSN",
+		"could not connect",
+	} {
+		if !strings.Contains(errOut, want) {
+			t.Errorf("missing %q:\n%s", want, errOut)
+		}
+	}
+	for _, secret := range []string{"sk-ant-test-0123456789", "p@ss/w:rd)"} {
+		if strings.Contains(errOut, secret) {
+			t.Errorf("secret %q echoed:\n%s", secret, errOut)
+		}
+	}
+	if strings.Contains(errOut, "export ANTHROPIC_API_KEY") || strings.Contains(errOut, "export WUZUO_ORDERS_DSN") {
+		t.Errorf("entered values should not be listed as todo:\n%s", errOut)
+	}
+
+	creds, err := os.ReadFile(filepath.Join(home, "credentials"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(creds), "ANTHROPIC_API_KEY=sk-ant-test-0123456789") || !strings.Contains(string(creds), "WUZUO_ORDERS_DSN=wuzuo:p@ss/w:rd)@tcp(127.0.0.1:1)/") {
+		t.Fatalf("credentials:\n%s", creds)
+	}
+	if st, _ := os.Stat(filepath.Join(home, "credentials")); st.Mode().Perm() != 0o600 {
+		t.Errorf("credentials mode %v", st.Mode().Perm())
+	}
+	cfgText, _ := os.ReadFile(filepath.Join(home, "config.yaml"))
+	if strings.Contains(string(cfgText), "sk-ant") || strings.Contains(string(cfgText), "p@ss") {
+		t.Fatalf("secret leaked into config.yaml:\n%s", cfgText)
+	}
+
+	// A later run picks the key up from the credentials file.
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	promptInput = strings.NewReader("")
+	out, _, err := run(t, "models")
+	if err != nil || !strings.Contains(out, "✓ ANTHROPIC_API_KEY") {
+		t.Fatalf("credentials not loaded: %v\n%s", err, out)
+	}
+}
+
+func TestAskMySQLConnectionIPv6AndSkip(t *testing.T) {
+	var out bytes.Buffer
+	dsn, summary, err := askMySQLConnection(bufio.NewReader(strings.NewReader("::1\n\nops\npw\n")), &out)
+	if err != nil || dsn != "ops:pw@tcp([::1]:3306)/" || summary != "ops@[::1]:3306" {
+		t.Fatalf("dsn=%q summary=%q err=%v", dsn, summary, err)
+	}
+	dsn, _, err = askMySQLConnection(bufio.NewReader(strings.NewReader("\n")), &out)
+	if err != nil || dsn != "" {
+		t.Fatalf("Enter on host should skip: %q %v", dsn, err)
+	}
+	_, _, err = askMySQLConnection(bufio.NewReader(strings.NewReader("bad host\nalso bad\nstill bad\n")), &out)
+	if err == nil {
+		t.Fatal("invalid hosts accepted")
+	}
+}
+
+func TestInitWizardReportsUpdatedFiles(t *testing.T) {
+	home := setupInteractive(t, "\nsk-ant-first-0123456789\nn\n")
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	if _, _, err := run(t, "init"); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	promptInput = strings.NewReader("\ny\nsk-ant-second-0123456789\nn\n") // model, replace the saved key, new key, no target
+	_, errOut, err := run(t, "init", "--force")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"ANTHROPIC_API_KEY is already saved in " + filepath.Join(home, "credentials") + " (sk-ant…6789). Replace it? [y/N]",
+		filepath.Join(home, "config.yaml") + "  overwritten: model opus",
+		filepath.Join(home, "credentials") + "  updated: ANTHROPIC_API_KEY",
+	} {
+		if !strings.Contains(errOut, want) {
+			t.Errorf("missing %q:\n%s", want, errOut)
+		}
+	}
+	creds, _ := os.ReadFile(filepath.Join(home, "credentials"))
+	if strings.Count(string(creds), "ANTHROPIC_API_KEY=") != 1 || !strings.Contains(string(creds), "sk-ant-second") {
+		t.Fatalf("credentials:\n%s", creds)
 	}
 }

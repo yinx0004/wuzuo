@@ -86,9 +86,11 @@ each release.
 
 ### 2. Set up
 
-Run `wuzuo`. On first use it walks you through choosing a model and adding a MySQL
-target, writes `~/.wuzuo/config.yaml`, and prints the `export` lines you still need.
-The rest of this section describes the same settings by hand.
+Run `wuzuo`. On first use it walks you through choosing a model, entering its API key,
+and adding a MySQL target (host, port, user, password), then tests the connection. Settings go to
+`~/.wuzuo/config.yaml`; the key and DSN go to `~/.wuzuo/credentials` (mode 0600), and
+exported environment variables take precedence over that file. The rest of this
+section describes the same settings by hand.
 
 ### 3. Choose a model
 

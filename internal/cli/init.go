@@ -45,7 +45,7 @@ model.`,
 			if err := os.WriteFile(path, []byte(config.Template(model, nil)), 0o600); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\nnext: add a target, then run `wuzuo toolset check`\n", path)
+			fmt.Fprintf(cmd.OutOrStdout(), "Created %s (starter config, model %q). No secrets were written.\nnext: add a target, then run `wuzuo toolset check`\n", displayPath(path), model)
 			return nil
 		},
 	}
