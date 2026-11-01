@@ -4,15 +4,15 @@ VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo d
 LDFLAGS    := -s -w -X $(PKG)/internal/version.Version=$(VERSION) \
               -X $(PKG)/internal/version.Commit=$(shell git rev-parse --short HEAD 2>/dev/null || echo none) \
               -X $(PKG)/internal/version.Date=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)
-LAB        := deploy/lab/docker-compose.yml
+LAB        := lab/docker-compose.yml
 # Lab passwords are generated per checkout by `make lab-secrets` into this
 # gitignored file; nothing secret is committed.
-LAB_SECRETS := deploy/lab/.env
+LAB_SECRETS := lab/.env
 -include $(LAB_SECRETS)
 LAB_DSN      = wuzuo:$(LAB_WUZUO_PASSWORD)@tcp(127.0.0.1:13306)/
 LAB_ROOT_DSN = root:$(LAB_ROOT_PASSWORD)@tcp(127.0.0.1:13306)/
 
-.PHONY: all build test test-integration lint fmt tidy clean lab-secrets lab-up lab-down lab-env require-lab
+.PHONY: all build test test-integration lint fmt tidy clean lab-secrets lab-up lab-stop lab-destroy lab-env require-lab
 
 all: lint test build
 
@@ -46,12 +46,18 @@ lab-secrets:
 		echo "generated $(LAB_SECRETS)"; \
 	fi
 
+# Start the lab, creating and seeding it on first use.
 lab-up: lab-secrets
 	docker compose -f $(LAB) up -d --wait
 
-# Also deletes the generated passwords; the next lab-up creates new ones.
-# (compose needs the variables set even to tear down, hence lab-secrets.)
-lab-down: lab-secrets
+# Pause the lab; data and passwords are kept for the next lab-up.
+lab-stop: require-lab
+	docker compose -f $(LAB) stop
+
+# Remove the lab completely: container, data and generated passwords. The
+# next lab-up starts from scratch. (compose needs the password variables set
+# even to tear down, hence lab-secrets.)
+lab-destroy: lab-secrets
 	docker compose -f $(LAB) down -v
 	rm -f $(LAB_SECRETS)
 
@@ -60,5 +66,5 @@ require-lab:
 
 # eval "$(make -s lab-env)" points WuZuo at the lab.
 lab-env: require-lab
-	@echo "export WUZUO_CONFIG=$(CURDIR)/deploy/lab/wuzuo.yaml"
+	@echo "export WUZUO_CONFIG=$(CURDIR)/lab/wuzuo.yaml"
 	@echo "export WUZUO_LAB_DSN='$(LAB_DSN)'"

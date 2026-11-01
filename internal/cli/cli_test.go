@@ -46,6 +46,7 @@ func TestAskPersistsCaseAndReport(t *testing.T) {
 	t.Setenv("WUZUO_CONFIG", filepath.Join(home, "none.yaml"))
 	t.Setenv("WUZUO_MYSQL_DSN", "")
 	t.Setenv("WUZUO_PROVIDER", "anthropic")
+	t.Setenv("ANTHROPIC_API_KEY", "test-key")
 	fake := &oneShot{}
 	newProvider = func(*config.ResolvedLLM) (llm.Provider, error) { return fake, nil }
 	t.Cleanup(func() { newProvider = llm.New })
@@ -168,14 +169,14 @@ func TestPickModelRetriesInvalidInput(t *testing.T) {
 	cfg := &config.Config{}
 	def, _ := cfg.DefaultChoice(os.Getenv)
 	var out bytes.Buffer
-	ch, err := pickModel(bufio.NewReader(strings.NewReader("99\nnope\nhaiku\n")), &out, cfg.Choices(os.Getenv), def)
+	ch, err := pickModel(bufio.NewReader(strings.NewReader("99\nnope\nhaiku\n")), &out, cfg.Choices(os.Getenv), def, false)
 	if err != nil || ch.Name != "haiku" {
 		t.Fatalf("%+v %v\n%s", ch, err, out.String())
 	}
 	if strings.Count(out.String(), "Not an available model") != 2 {
 		t.Errorf("output:\n%s", out.String())
 	}
-	ch, err = pickModel(bufio.NewReader(strings.NewReader("anthropic/claude-custom\n")), &out, cfg.Choices(os.Getenv), def)
+	ch, err = pickModel(bufio.NewReader(strings.NewReader("anthropic/claude-custom\n")), &out, cfg.Choices(os.Getenv), def, false)
 	if err != nil || ch.Provider != "anthropic" || ch.Model != "claude-custom" {
 		t.Fatalf("provider/model: %+v %v", ch, err)
 	}
@@ -190,6 +191,90 @@ func TestModelsCommand(t *testing.T) {
 	for _, want := range []string{"opus", "✓ ANTHROPIC_API_KEY", "✗ DEEPSEEK_API_KEY", "* anthropic/claude-opus-5-5 (default"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestInitWizardWithKey(t *testing.T) {
+	home := setupInteractive(t, "2\n\norders\n订单主库\n\n") // sonnet, add target, name, description, default env
+	_, errOut, err := run(t, "init")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(filepath.Join(home, "config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.LLM.Model != "sonnet" || len(cfg.Targets) != 1 {
+		t.Fatalf("cfg: model=%q targets=%+v", cfg.LLM.Model, cfg.Targets)
+	}
+	tg := cfg.Targets[0]
+	if tg.Name != "orders" || tg.Description != "订单主库" || tg.DSNEnv != "WUZUO_ORDERS_DSN" || tg.Type != "mysql" {
+		t.Fatalf("target: %+v", tg)
+	}
+	if !strings.Contains(errOut, "export WUZUO_ORDERS_DSN=") || strings.Contains(errOut, "export ANTHROPIC_API_KEY") {
+		t.Errorf("next steps:\n%s", errOut)
+	}
+}
+
+func TestInitWizardWithoutKey(t *testing.T) {
+	home := setupInteractive(t, "\nn\n") // default model, no target
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	_, errOut, err := run(t, "init")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"No LLM API key is set yet", "needs ANTHROPIC_API_KEY", "needs DEEPSEEK_API_KEY", "export ANTHROPIC_API_KEY=", "wuzuo toolset check"} {
+		if !strings.Contains(errOut, want) {
+			t.Errorf("missing %q:\n%s", want, errOut)
+		}
+	}
+	cfg, err := config.Load(filepath.Join(home, "config.yaml"))
+	if err != nil || cfg.LLM.Model != "opus" || len(cfg.Targets) != 0 {
+		t.Fatalf("cfg: %+v %v", cfg, err)
+	}
+}
+
+func TestBareWuzuoOffersSetup(t *testing.T) {
+	home := setupInteractive(t, "n\n")
+	out, errOut, err := run(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(errOut, "No WuZuo configuration found") || !strings.Contains(out, "Available Commands") {
+		t.Fatalf("declined setup should show help:\n%s\n%s", errOut, out)
+	}
+
+	promptInput = strings.NewReader("y\n3\nn\n") // set up: haiku, no target
+	if _, _, err := run(t); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(filepath.Join(home, "config.yaml"))
+	if err != nil || cfg.LLM.Model != "haiku" {
+		t.Fatalf("cfg: %+v %v", cfg.LLM, err)
+	}
+
+	// With a config present, bare wuzuo only prints help.
+	promptInput = strings.NewReader("")
+	_, errOut, err = run(t)
+	if err != nil || strings.Contains(errOut, "No WuZuo configuration") {
+		t.Fatalf("%v\n%s", err, errOut)
+	}
+	if _, _, err := run(t, "aks"); err == nil || !strings.Contains(err.Error(), "unknown command") {
+		t.Fatalf("typo should still be an unknown command: %v", err)
+	}
+}
+
+func TestAskWithoutKeyExplainsWhatToSet(t *testing.T) {
+	setupInteractive(t, "")
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	_, _, err := run(t, "ask", "why slow")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	for _, want := range []string{"no LLM API key found", "export ANTHROPIC_API_KEY=", "opus, sonnet", "export DEEPSEEK_API_KEY=", "wuzuo init"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("missing %q:\n%s", want, err)
 		}
 	}
 }

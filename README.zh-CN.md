@@ -25,6 +25,8 @@
 go install github.com/yinx0004/wuzuo/cmd/wuzuo@latest
 ```
 
+**首次设置**：直接运行 `wuzuo`。第一次使用时，它会带你选择模型、添加 MySQL 目标，写好 `~/.wuzuo/config.yaml`，并列出还需要 export 的环境变量。下面是这些设置的手动方式。
+
 **选择模型**：WuZuo 会从环境变量自动识别，设置以下任意一组即可，不需要写配置。
 
 | 环境变量 | 模型服务 | 默认模型 |
@@ -52,12 +54,16 @@ wuzuo ask "订单库 10 点以后变慢了"
 
 ## 在靶场里试一试
 
+`lab/` 是给开发和演示用的本地测试环境，不是部署方式：Docker 里跑一个一次性的 MySQL 8.4，带种子数据 `shop` 库，再配上几个模拟真实故障的脚本。不要把这些脚本用在真实服务器上。
+
 ```bash
 make lab-up && make build
 eval "$(make -s lab-env)"
-deploy/lab/scenarios/lock-wait.sh          # 还有 slow-query.sh、deadlock.sh、conn-pileup.sh
+lab/scenarios/lock-wait.sh          # 还有 slow-query.sh、deadlock.sh、conn-pileup.sh
 ./bin/wuzuo ask "orders 表的更新全卡住了" -t lab
-deploy/lab/scenarios/reset.sh
+lab/scenarios/reset.sh                     # 结束正在模拟的故障
+make lab-stop                              # 暂停靶场，保留数据
+make lab-destroy                           # 彻底删除靶场
 ```
 
 ## 命令
@@ -70,7 +76,7 @@ deploy/lab/scenarios/reset.sh
 | `wuzuo models` | 列出 `-m` 可用的模型短名，以及哪些 key 已设置 |
 | `wuzuo toolset list \| check` | 列出探针、检查前置条件 |
 | `wuzuo toolset run <探针> [json]` | 手动执行单个探针 |
-| `wuzuo init` | 生成配置文件 `~/.wuzuo/config.yaml` |
+| `wuzuo init` | 首次设置：选择模型、添加目标、生成 `~/.wuzuo/config.yaml` |
 
 需要模型自己写 SQL 的两个探针默认关闭，可以在配置文件的 `safety:` 下分别打开：`allow_explain`（`mysql_explain`，查看 SELECT 的执行计划，不实际执行）和 `allow_raw_sql`（`mysql_query`，受控的只读查询）。
 

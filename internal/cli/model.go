@@ -50,7 +50,7 @@ func ensureModel(cmd *cobra.Command, cfg *config.Config, configPath, override st
 
 	in := bufio.NewReader(promptInput)
 	fmt.Fprintln(errOut, "No model is configured yet.")
-	chosen, err := pickModel(in, errOut, cfg.Choices(envLookup), def)
+	chosen, err := pickModel(in, errOut, cfg.Choices(envLookup), def, false)
 	if err != nil {
 		return "", err
 	}
@@ -69,15 +69,18 @@ func ensureModel(cmd *cobra.Command, cfg *config.Config, configPath, override st
 	return chosen.Name, nil
 }
 
-// pickModel shows the available models and reads a choice: a number, a
-// name, "provider/model", or Enter for the default.
-func pickModel(in *bufio.Reader, out io.Writer, choices []config.Choice, def config.Choice) (config.Choice, error) {
+// pickModel shows the models and reads a choice: a number, a name,
+// "provider/model", or Enter for the default. Normally only models whose key
+// is set are offered; with allowMissingKey (first-time setup before any key
+// exists) every named model is offered together with the key it needs.
+func pickModel(in *bufio.Reader, out io.Writer, choices []config.Choice, def config.Choice, allowMissingKey bool) (config.Choice, error) {
 	var avail []config.Choice
 	missing := map[string][]string{} // key variable -> names
 	for _, ch := range choices {
-		if ch.Available {
+		switch {
+		case ch.Available || (allowMissingKey && ch.Source != "env"):
 			avail = append(avail, ch)
-		} else if ch.Source != "env" {
+		case ch.Source != "env":
 			missing[ch.KeyEnv] = append(missing[ch.KeyEnv], ch.Name)
 		}
 	}
@@ -89,7 +92,14 @@ func pickModel(in *bufio.Reader, out io.Writer, choices []config.Choice, def con
 		if ch.Name == def.Name {
 			mark, defIdx = "(default)", i
 		}
-		fmt.Fprintf(w, "  %d)\t%s\t%s/%s\t%s\t%s\n", i+1, ch.Name, ch.Provider, ch.Model, ch.Description, mark)
+		desc := ch.Description
+		if allowMissingKey {
+			desc = "needs " + ch.KeyEnv
+			if ch.Available {
+				desc = ch.KeyEnv + " is set"
+			}
+		}
+		fmt.Fprintf(w, "  %d)\t%s\t%s/%s\t%s\t%s\n", i+1, ch.Name, ch.Provider, ch.Model, desc, mark)
 	}
 	_ = w.Flush()
 	if len(missing) > 0 {
@@ -122,10 +132,9 @@ func pickModel(in *bufio.Reader, out io.Writer, choices []config.Choice, def con
 			}
 		}
 		if p, m, ok := strings.Cut(line, "/"); ok && p != "" && m != "" {
-			for _, ch := range avail {
-				if ch.Provider == strings.ToLower(p) {
-					return config.Choice{Name: line, Provider: ch.Provider, Model: m}, nil
-				}
+			p = strings.ToLower(p)
+			if keyEnv, set, known := config.KeyEnvFor(p, envLookup); known && (set || allowMissingKey) {
+				return config.Choice{Name: p + "/" + m, Provider: p, Model: m, KeyEnv: keyEnv, Available: set}, nil
 			}
 		}
 		fmt.Fprintf(out, "Not an available model: %q. Enter a number from 1 to %d, a name, or provider/model.\n", line, len(avail))

@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 # Creates the lab accounts. Passwords come from the container environment,
-# which `make lab-up` fills from the generated, gitignored deploy/lab/.env.
+# which `make lab-up` fills from the generated, gitignored lab/.env.
 # The WuZuo account mirrors docs/mysql-privileges.sql.
 set -euo pipefail
 

@@ -16,13 +16,24 @@ WuZuo **不需要配置文件也能运行**，只设置环境变量就够了。�
 
 案件（证物和尸格）默认存在 `$WUZUO_HOME/cases`，可以用 `cases_dir` 修改。
 
-生成配置模板：
+### 首次设置
 
-```bash
-wuzuo init            # 写入 ~/.wuzuo/config.yaml，权限 0600；加 --force 可覆盖已有文件
+直接运行 `wuzuo`（不带参数）。如果还没有配置文件，它会询问是否现在设置；`wuzuo init` 则直接进入同样的步骤（加 `--force` 可覆盖已有文件）：
+
+1. 选择默认模型。已设置 key 的模型排在前面；一个 key 都没有时，会列出全部内置模型，并注明各自需要哪个 key。
+2. 可选：添加一个 MySQL 目标，填写名字、给模型看的描述，以及存放连接串的环境变量名。
+3. 写入配置文件（权限 0600），并列出剩下要做的事，例如：
+
+```text
+Next steps:
+  export ANTHROPIC_API_KEY=...        # API key for opus
+  export WUZUO_ORDERS_PRIMARY_DSN='wuzuo:<password>@tcp(<host>:3306)/'   # account: docs/mysql-privileges.sql
+  (add the export lines to your shell profile to keep them)
+  wuzuo toolset check                  # verify model, connectivity and privileges
+  wuzuo ask "describe what is wrong"
 ```
 
-在终端里运行时，`init` 会让你从已设置 key 的模型中选择默认模型。
+设置过程不会询问 API key 或密码。不在终端里运行时，`wuzuo init` 会直接写入带注释的模板，并使用默认模型。
 
 ## 只用环境变量
 
@@ -107,6 +118,7 @@ Save "sonnet" as the default model in /home/you/.wuzuo/config.yaml? [Y/n]
 - 默认项是：按下表顺序，第一个设置了 key 的服务商的默认模型。
 - 选择保存时，会把 `llm.model` 写入配置文件；文件不存在就按模板新建，已有文件里的其他配置和注释都会保留。
 - 不在终端里运行时（CI、定时任务、标准输入被管道占用），不会弹出选择，直接使用默认项并打印一行提示。
+- 一个 API key 都没有设置时，会在创建案件之前停下，列出每个环境变量分别对应哪些模型。
 
 `wuzuo init` 新建配置文件时也会让你做同样的选择。
 
@@ -249,7 +261,8 @@ wuzuo toolset run mysql_overview   # 手动执行一个探针
 
 | 报错 | 解决办法 |
 |---|---|
-| `no LLM provider configured` | 设置上表中任一 key 变量，或设置 `llm.provider` |
+| `no LLM API key found` | 按提示导出其中一个 key 变量 |
+| `model "opus" (anthropic) needs an API key` | 配置的模型对应的 key 没有设置；导出它，或用 `-m` 换一个模型 |
 | `provider openai: no model selected` | 用 `-m openai/<ID>`、设置 `OPENAI_MODEL`（ark 用 `ARK_MODEL`），或定义别名 |
 | `provider deepseek: set DEEPSEEK_API_KEY` | 选中的名字属于一个还没设置 key 的服务商，用 `wuzuo models` 查看 |
 | `api_key_env: environment variable X is not set` | 导出别名或 `llm.api_key_env` 指定的变量 |
