@@ -230,9 +230,15 @@ lab                  local test lab for development: disposable MySQL plus incid
 
 ## Roadmap
 
-- **v0.1**: MySQL toolset, evidence locker, autopsy reports, case replay, lab
-- **v0.2**: MongoDB toolset, MCP client toolsets, runbooks, Alertmanager-driven investigations
-- **v0.3**: timeline reconstruction, HTTP server, Lark/Feishu and Slack bots, evaluation harness over the lab scenarios
+- **[v0.1.0](https://github.com/yinx0004/wuzuo/milestone/1)**: MySQL toolset, with an
+  evaluation on staged lab incidents
+- **[v0.2.0](https://github.com/yinx0004/wuzuo/milestone/2)**: MongoDB toolset, more MySQL
+  coverage
+- Later: Prometheus and other data sources, an HTTP server, chat bots, alert-driven
+  investigations
+
+All planned work is tracked as [issues](https://github.com/yinx0004/wuzuo/issues), labelled
+`priority/P0` to `priority/P3`.
 
 ## Contributing
 
