@@ -38,12 +38,17 @@ type Hypothesis struct {
 	Evidence  []string `json:"evidence,omitempty"`
 }
 
-// Tokens is aggregate model usage.
+// Tokens is aggregate model usage. Input, CacheRead and CacheWrite do not
+// overlap; their sum is all input the model processed.
 type Tokens struct {
-	Input     int64 `json:"input"`
-	Output    int64 `json:"output"`
-	CacheRead int64 `json:"cache_read,omitempty"`
+	Input      int64 `json:"input"`
+	Output     int64 `json:"output"`
+	CacheRead  int64 `json:"cache_read,omitempty"`
+	CacheWrite int64 `json:"cache_write,omitempty"`
 }
+
+// TotalInput is all input tokens, cached or not.
+func (t Tokens) TotalInput() int64 { return t.Input + t.CacheRead + t.CacheWrite }
 
 // Case is the metadata of one investigation.
 type Case struct {

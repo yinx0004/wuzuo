@@ -170,9 +170,9 @@ func (inv *investigation) emit(e Event) {
 }
 
 type probeOutcome struct {
-	result  *toolset.Result
-	err     error
-	started time.Time
+	result            *toolset.Result
+	err               error
+	started, finished time.Time
 }
 
 // runCalls executes one assistant turn's tool calls. Probes run concurrently;
@@ -191,6 +191,7 @@ func (inv *investigation) runCalls(ctx context.Context, step int, calls []llm.To
 			defer wg.Done()
 			o := &probeOutcome{started: time.Now()}
 			o.result, o.err = tool.Run(ctx, c.Args)
+			o.finished = time.Now() // not at sealing time, which waits for the slowest probe
 			outcomes[i] = o
 		}(i, c, tool)
 	}
@@ -218,7 +219,7 @@ func (inv *investigation) seal(step int, c llm.ToolCall, o *probeOutcome) llm.To
 	if target == "" {
 		target = argTarget(c.Args)
 	}
-	e, err := inv.opts.Locker.Record(c.Name, target, compactJSON(c.Args), content, o.err, o.started)
+	e, err := inv.opts.Locker.Record(c.Name, target, compactJSON(c.Args), content, o.err, o.started, o.finished)
 	if err != nil {
 		return llm.ToolResult{CallID: c.ID, Content: "failed to seal evidence: " + err.Error(), IsError: true}
 	}

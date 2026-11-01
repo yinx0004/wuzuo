@@ -103,8 +103,9 @@ func Load(dir string) (*Locker, error) {
 	return l, nil
 }
 
-// Record seals a new evidence item and returns it.
-func (l *Locker) Record(tool, target string, args json.RawMessage, content string, probeErr error, started time.Time) (*Evidence, error) {
+// Record seals a new evidence item and returns it. started and finished bound
+// the probe's own run, so concurrent probes each get their own duration.
+func (l *Locker) Record(tool, target string, args json.RawMessage, content string, probeErr error, started, finished time.Time) (*Evidence, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	e := &Evidence{
@@ -113,7 +114,7 @@ func (l *Locker) Record(tool, target string, args json.RawMessage, content strin
 		Target:      target,
 		Args:        args,
 		CollectedAt: started.UTC(),
-		DurationMS:  time.Since(started).Milliseconds(),
+		DurationMS:  finished.Sub(started).Milliseconds(),
 		Content:     content,
 	}
 	if probeErr != nil {

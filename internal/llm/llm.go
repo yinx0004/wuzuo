@@ -79,12 +79,19 @@ const (
 	StopOther     StopReason = "other"
 )
 
-// Usage counts tokens for one call.
+// Usage counts tokens for one call. The three input fields do not overlap:
+// InputTokens is input that was neither read from nor written to the prompt
+// cache, so TotalInput is their sum. Adapters normalize to this.
 type Usage struct {
 	InputTokens      int64
 	OutputTokens     int64
 	CacheReadTokens  int64
 	CacheWriteTokens int64
+}
+
+// TotalInput is every input token the model processed, cached or not.
+func (u Usage) TotalInput() int64 {
+	return u.InputTokens + u.CacheReadTokens + u.CacheWriteTokens
 }
 
 // Add accumulates u2 into u.

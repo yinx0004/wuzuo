@@ -31,6 +31,7 @@ func (o *oneShot) Chat(context.Context, *llm.Request) (*llm.Response, error) {
 	return &llm.Response{
 		Message:    llm.Message{Role: llm.RoleAssistant, ToolCalls: []llm.ToolCall{{ID: "1", Name: "submit_autopsy", Args: json.RawMessage(args)}}},
 		StopReason: llm.StopToolUse,
+		Usage:      llm.Usage{InputTokens: 12, CacheReadTokens: 38168, CacheWriteTokens: 500, OutputTokens: 7331},
 	}, nil
 }
 
@@ -56,9 +57,12 @@ func TestAskPersistsCaseAndReport(t *testing.T) {
 	newProvider = func(*config.ResolvedLLM) (llm.Provider, error) { return fake, nil }
 	t.Cleanup(func() { newProvider = llm.New })
 
-	out, _, err := run(t, "ask", "为什么订单库变慢了")
+	out, errOut, err := run(t, "ask", "为什么订单库变慢了")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !strings.Contains(errOut, "tokens: 38680 in (38168 read from cache, 500 written to cache) / 7331 out") {
+		t.Errorf("token summary:\n%s", errOut)
 	}
 	if !strings.Contains(out, "# 无法判断") || !strings.Contains(out, "存疑") {
 		t.Fatalf("report:\n%s", out)
