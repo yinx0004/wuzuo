@@ -243,3 +243,16 @@ func TestRefusalFallbackFollowsModelTable(t *testing.T) {
 // id returns the model ID a built-in short name currently points to, so tests
 // keep passing when a built-in model is updated.
 func id(name string) string { return builtin(name).Model }
+
+func TestThinkingSummaryFollowsModelTable(t *testing.T) {
+	e := env(map[string]string{"ANTHROPIC_API_KEY": "k", "DEEPSEEK_API_KEY": "d"})
+	for model, want := range map[string]bool{"opus": true, "haiku": true, "anthropic/claude-unknown": false, "deepseek": false} {
+		r, err := (&Config{}).ResolveModel(model, e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r.ThinkingSummary != want {
+			t.Errorf("%s: ThinkingSummary=%v, want %v", model, r.ThinkingSummary, want)
+		}
+	}
+}

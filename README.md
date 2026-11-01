@@ -166,6 +166,7 @@ make lab-destroy                        # remove it completely
 |---|---|
 | `wuzuo ask <complaint>` | Investigate and print the autopsy report (`-m model`, `-t target`, `--json`, `-q`) |
 | `wuzuo case list \| show <id>` | Browse past cases (ID prefixes work) |
+| `wuzuo case show <id> --transcript` | Step by step: what the model saw, its thinking summary, the probes it called, and what came back (`--full` for unshortened text) |
 | `wuzuo case replay <id>` | Re-examine sealed evidence, e.g. with another model: `-m sonnet` |
 | `wuzuo models` | Model short names usable with `-m`, and which keys are set |
 | `wuzuo models fetch` | Ask each provider which models it offers now; flags newer and retired ones |

@@ -32,6 +32,10 @@ type Message struct {
 	ToolCalls []ToolCall
 	// ToolResults answer the previous assistant turn's ToolCalls (user role).
 	ToolResults []ToolResult
+	// Thinking is the readable reasoning summary the provider returned, if any.
+	// It is recorded for review only; Native carries the provider's own
+	// reasoning blocks when the turn is sent back.
+	Thinking string
 	// Native holds the provider's own representation of an assistant turn.
 	// Adapters prefer it over Text/ToolCalls when rebuilding history.
 	Native any

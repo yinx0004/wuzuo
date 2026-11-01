@@ -46,6 +46,9 @@ type BuiltinModel struct {
 	// RefusalFallback: the Anthropic API accepts `fallbacks: "default"` for
 	// this model, re-serving a declined request on a fallback model.
 	RefusalFallback bool
+	// AdaptiveThinking: the model accepts `thinking: {type: "adaptive"}`, so
+	// WuZuo can ask for summarized thinking to record in the transcript.
+	AdaptiveThinking bool
 }
 
 // BuiltinModels is the only place in the code that names model IDs. Presets
@@ -54,10 +57,10 @@ type BuiltinModel struct {
 // docs/configuration*.md (TestDocsListBuiltinModels checks they match); see
 // CONTRIBUTING.md. Cases record the full model ID they resolved to.
 var BuiltinModels = []BuiltinModel{
-	{Name: "opus", Provider: "anthropic", Model: "claude-opus-5-5", Description: "Claude Opus, strongest default", RefusalFallback: true},
-	{Name: "sonnet", Provider: "anthropic", Model: "claude-sonnet-5-5", Description: "Claude Sonnet, faster and cheaper", RefusalFallback: true},
-	{Name: "haiku", Provider: "anthropic", Model: "claude-haiku-5-5", Description: "Claude Haiku, fastest"},
-	{Name: "fable", Provider: "anthropic", Model: "claude-fable-5-1", Description: "Claude Fable, most capable", RefusalFallback: true},
+	{Name: "opus", Provider: "anthropic", Model: "claude-opus-5-5", Description: "Claude Opus, strongest default", RefusalFallback: true, AdaptiveThinking: true},
+	{Name: "sonnet", Provider: "anthropic", Model: "claude-sonnet-5-5", Description: "Claude Sonnet, faster and cheaper", RefusalFallback: true, AdaptiveThinking: true},
+	{Name: "haiku", Provider: "anthropic", Model: "claude-haiku-5-5", Description: "Claude Haiku, fastest", AdaptiveThinking: true},
+	{Name: "fable", Provider: "anthropic", Model: "claude-fable-5-1", Description: "Claude Fable, most capable", RefusalFallback: true, AdaptiveThinking: true},
 	{Name: "deepseek", Provider: "deepseek", Model: "deepseek-chat", Description: "DeepSeek chat"},
 	{Name: "deepseek-r", Provider: "deepseek", Model: "deepseek-reasoner", Description: "DeepSeek reasoner"},
 	{Name: "qwen", Provider: "qwen", Model: "qwen-plus", Description: "Qwen Plus"},
@@ -85,6 +88,9 @@ type ResolvedLLM struct {
 	APIKey          string
 	Effort          string
 	RefusalFallback bool
+	// ThinkingSummary asks the provider for a readable summary of the model's
+	// reasoning, recorded in the case transcript.
+	ThinkingSummary bool
 	// Source explains how the model was chosen, shown in diagnostics.
 	Source string
 }
@@ -207,6 +213,7 @@ func (c *Config) resolve(name string, requireModel bool, getenv func(string) str
 	if r.Model == "" {
 		r.Model = p.defaultModel()
 	}
+	r.ThinkingSummary = SupportsAdaptiveThinking(p.Name, r.Model)
 	if c.LLM.RefusalFallback != nil {
 		r.RefusalFallback = *c.LLM.RefusalFallback
 	} else {
@@ -338,6 +345,17 @@ func SupportsRefusalFallback(provider, model string) bool {
 	for _, b := range BuiltinModels {
 		if b.Provider == provider && b.Model == model {
 			return b.RefusalFallback
+		}
+	}
+	return false
+}
+
+// SupportsAdaptiveThinking reports whether model (a full ID) is a built-in
+// model known to accept adaptive thinking with a display setting.
+func SupportsAdaptiveThinking(provider, model string) bool {
+	for _, b := range BuiltinModels {
+		if b.Provider == provider && b.Model == model {
+			return b.AdaptiveThinking
 		}
 	}
 	return false

@@ -211,3 +211,45 @@ func TestOpenAIUsageSplitsCachedTokens(t *testing.T) {
 		t.Fatalf("usage = %+v (total %d)", u, u.TotalInput())
 	}
 }
+
+func TestAnthropicThinkingSummary(t *testing.T) {
+	srv, body, _ := capture(t, `{"id":"m","type":"message","role":"assistant","model":"m",
+		"content":[{"type":"thinking","thinking":"Check locks before IO.","signature":"sig"},
+		           {"type":"redacted_thinking","data":"opaque"},
+		           {"type":"text","text":"Checking locks."}],
+		"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":1}}`)
+	req := &Request{Messages: []Message{{Role: RoleUser, Text: "hi"}}}
+
+	resp, err := NewAnthropic(AnthropicOptions{Model: "m", APIKey: "k", BaseURL: srv.URL, ThinkingSummary: true}).Chat(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	th, _ := (*body)["thinking"].(map[string]any)
+	if th["type"] != "adaptive" || th["display"] != "summarized" {
+		t.Errorf("thinking param = %v", (*body)["thinking"])
+	}
+	if resp.Message.Thinking != "Check locks before IO.\n\n[redacted thinking]" || resp.Message.Text != "Checking locks." {
+		t.Errorf("thinking=%q text=%q", resp.Message.Thinking, resp.Message.Text)
+	}
+
+	clear(*body) // capture decodes into the same map; drop the first request's fields
+	if _, err := NewAnthropic(AnthropicOptions{Model: "m", APIKey: "k", BaseURL: srv.URL}).Chat(context.Background(), req); err != nil {
+		t.Fatal(err)
+	}
+	if _, sent := (*body)["thinking"]; sent {
+		t.Error("thinking param sent for a model not known to support it")
+	}
+}
+
+func TestOpenAIReasoningContent(t *testing.T) {
+	srv := serve(t, 200, `{"id":"c","object":"chat.completion","created":1,"model":"deepseek-reasoner",
+		"choices":[{"index":0,"finish_reason":"stop","message":{"role":"assistant","content":"done","reasoning_content":"First, the locks."}}],
+		"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}`)
+	resp, err := NewOpenAI(OpenAIOptions{Model: "m", APIKey: "k", BaseURL: srv.URL}).Chat(context.Background(), &Request{Messages: []Message{{Role: RoleUser, Text: "hi"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Message.Thinking != "First, the locks." {
+		t.Fatalf("thinking = %q", resp.Message.Thinking)
+	}
+}

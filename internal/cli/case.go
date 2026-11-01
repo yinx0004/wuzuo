@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,11 +41,14 @@ func newCaseCmd(g *globalFlags) *cobra.Command {
 		},
 	}
 
-	var asJSON bool
+	var asJSON, showTranscript, full bool
 	show := &cobra.Command{
 		Use:   "show <case-id>",
-		Short: "Print a case's autopsy report (ID prefixes work)",
-		Args:  cobra.ExactArgs(1),
+		Short: "Print a case's autopsy report, or its transcript (ID prefixes work)",
+		Example: `  wuzuo case show 20261101-1040
+  wuzuo case show 20261101-1040 --transcript          # what the model saw and did, step by step
+  wuzuo case show 20261101-1040 --transcript --full   # without shortening long text`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := g.load()
 			if err != nil {
@@ -55,9 +59,19 @@ func newCaseCmd(g *globalFlags) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if showTranscript {
+				lines, err := store.ReadTranscript(c.ID)
+				if errors.Is(err, os.ErrNotExist) {
+					return fmt.Errorf("case %s has no transcript (it was recorded before transcripts were added)", c.ID)
+				}
+				if err != nil {
+					return err
+				}
+				return printTranscript(cmd.OutOrStdout(), lines, full)
+			}
 			a, err := store.LoadReport(c.ID)
 			if err != nil {
-				return fmt.Errorf("case %s has no report (status %s): %s", c.ID, c.Status, c.Error)
+				return fmt.Errorf("case %s has no report (status %s): %s. Its transcript may show why: wuzuo case show %s --transcript", c.ID, c.Status, c.Error, c.ID)
 			}
 			if asJSON {
 				return printReport(cmd.OutOrStdout(), true, a, "")
@@ -70,7 +84,9 @@ func newCaseCmd(g *globalFlags) *cobra.Command {
 			return err
 		},
 	}
-	show.Flags().BoolVar(&asJSON, "json", false, "print JSON")
+	show.Flags().BoolVar(&asJSON, "json", false, "print the report as JSON")
+	show.Flags().BoolVar(&showTranscript, "transcript", false, "print the step-by-step transcript instead of the report")
+	show.Flags().BoolVar(&full, "full", false, "with --transcript: do not shorten long text")
 
 	var out runOutput
 	replay := &cobra.Command{

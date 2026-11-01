@@ -130,6 +130,7 @@ func (inv *investigation) runMeta(step int, c llm.ToolCall) (content string, isE
 		}
 		if problems := a.Validate(inv.opts.Locker); len(problems) > 0 {
 			inv.emit(Event{Kind: EventRejected, Step: step, Text: strings.Join(problems, "; ")})
+			inv.record(Entry{Type: EntryError, Step: step, Kind: ErrorReportRejected, Detail: strings.Join(problems, "; ")})
 			return "rejected, fix these problems and submit again:\n- " + strings.Join(problems, "\n- "), true, false
 		}
 		inv.res.Autopsy = &a

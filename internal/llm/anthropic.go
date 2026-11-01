@@ -23,6 +23,10 @@ type AnthropicOptions struct {
 	// RefusalFallback enables server-side fallback for declined requests.
 	// Set it only for models that support it, on the first-party API.
 	RefusalFallback bool
+	// ThinkingSummary requests adaptive thinking with summarized display, so
+	// responses carry a readable summary of the model's reasoning. Set it only
+	// for models that accept adaptive thinking.
+	ThinkingSummary bool
 }
 
 // Anthropic talks to Claude through the official SDK.
@@ -89,6 +93,12 @@ func (a *Anthropic) Chat(ctx context.Context, req *Request) (*Response, error) {
 		}
 		params.Tools = append(params.Tools, anthropic.ToolUnionParam{OfTool: &tp})
 	}
+	if a.opts.ThinkingSummary {
+		// Thinking happens and is billed either way; this only makes its
+		// summary visible instead of empty.
+		adaptive := anthropic.ThinkingConfigAdaptiveParam{Display: anthropic.ThinkingConfigAdaptiveDisplaySummarized}
+		params.Thinking = anthropic.ThinkingConfigParamUnion{OfAdaptive: &adaptive}
+	}
 	if a.opts.Effort != "" {
 		params.OutputConfig = anthropic.OutputConfigParam{Effort: anthropic.OutputConfigEffort(a.opts.Effort)}
 	}
@@ -110,9 +120,15 @@ func (a *Anthropic) Chat(ctx context.Context, req *Request) (*Response, error) {
 			CacheWriteTokens: resp.Usage.CacheCreationInputTokens,
 		},
 	}
-	var text []string
+	var text, thinking []string
 	for _, block := range resp.Content {
 		switch b := block.AsAny().(type) {
+		case anthropic.ThinkingBlock:
+			if t := strings.TrimSpace(b.Thinking); t != "" {
+				thinking = append(thinking, t)
+			}
+		case anthropic.RedactedThinkingBlock:
+			thinking = append(thinking, "[redacted thinking]")
 		case anthropic.TextBlock:
 			text = append(text, b.Text)
 		case anthropic.ToolUseBlock:
@@ -124,6 +140,7 @@ func (a *Anthropic) Chat(ctx context.Context, req *Request) (*Response, error) {
 		}
 	}
 	out.Message.Text = strings.Join(text, "\n")
+	out.Message.Thinking = strings.Join(thinking, "\n\n")
 
 	switch resp.StopReason {
 	case anthropic.StopReasonEndTurn:

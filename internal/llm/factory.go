@@ -22,6 +22,7 @@ func New(r *config.ResolvedLLM) (Provider, error) {
 			// Server-side fallback is a first-party API feature; a gateway may
 			// not understand the field.
 			RefusalFallback: r.RefusalFallback && (r.BaseURL == "" || strings.Contains(r.BaseURL, "api.anthropic.com")),
+			ThinkingSummary: r.ThinkingSummary,
 		}), nil
 	case config.KindOpenAI:
 		return NewOpenAI(OpenAIOptions{

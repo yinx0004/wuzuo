@@ -480,3 +480,65 @@ func fakeSecret(label string) string {
 	_, _ = rand.Read(b)
 	return "fake-" + label + "-" + hex.EncodeToString(b)
 }
+
+type brokenProvider struct{}
+
+func (brokenProvider) Name() string  { return "fake" }
+func (brokenProvider) Model() string { return "fake-1" }
+func (brokenProvider) Chat(context.Context, *llm.Request) (*llm.Response, error) {
+	return nil, errors.New("upstream timeout")
+}
+
+func latestCaseID(t *testing.T) string {
+	t.Helper()
+	out, _, err := run(t, "case", "list")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return strings.Fields(strings.Split(out, "\n")[1])[0]
+}
+
+func TestCaseShowTranscript(t *testing.T) {
+	setupInteractive(t, "")
+	if _, _, err := run(t, "ask", "-m", "opus", "why slow"); err != nil {
+		t.Fatal(err)
+	}
+	id := latestCaseID(t)
+	out, _, err := run(t, "case", "show", id, "--transcript")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"case " + id, "complaint: why slow", "settings: ", "thinking_summary=true",
+		"model: fake/fake-1", "system prompt: ", "── step 1 ──", "Complaint: why slow",
+		"model reply (", "submit_autopsy", "results (final step; not sent to the model)",
+		"submit_autopsy: accepted", "end: closed after 1 step,",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
+func TestFailedCaseKeepsTranscript(t *testing.T) {
+	setupInteractive(t, "")
+	newProvider = func(*config.ResolvedLLM) (llm.Provider, error) { return brokenProvider{}, nil }
+	_, _, err := run(t, "ask", "-m", "opus", "why slow")
+	if err == nil || !strings.Contains(err.Error(), "--transcript") {
+		t.Fatalf("error should point to the transcript: %v", err)
+	}
+	id := latestCaseID(t)
+	out, _, err := run(t, "case", "show", id, "--transcript")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"! llm: upstream timeout", "end: failed after 0 steps", "error: upstream timeout"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+	_, _, err = run(t, "case", "show", id)
+	if err == nil || !strings.Contains(err.Error(), "wuzuo case show "+id+" --transcript") {
+		t.Fatalf("report-less case should suggest the transcript: %v", err)
+	}
+}

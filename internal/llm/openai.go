@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
@@ -92,6 +93,15 @@ func (p *OpenAI) Chat(ctx context.Context, req *Request) (*Response, error) {
 			CacheReadTokens: resp.Usage.PromptTokensDetails.CachedTokens,
 		},
 	}
+	// Some compatible servers (DeepSeek reasoner, vLLM, Ollama) return the
+	// model's reasoning in a non-standard field.
+	var extra struct {
+		ReasoningContent string `json:"reasoning_content"`
+		Reasoning        string `json:"reasoning"`
+	}
+	if raw := choice.Message.RawJSON(); raw != "" && json.Unmarshal([]byte(raw), &extra) == nil {
+		out.Message.Thinking = strings.TrimSpace(firstNonEmptyString(extra.ReasoningContent, extra.Reasoning))
+	}
 	for _, tc := range choice.Message.ToolCalls {
 		if tc.Type != "function" {
 			continue
@@ -166,4 +176,13 @@ func jsonSchemaObject(props map[string]any, required []string) map[string]any {
 		s["required"] = required
 	}
 	return s
+}
+
+func firstNonEmptyString(vs ...string) string {
+	for _, v := range vs {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }

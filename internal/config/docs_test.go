@@ -95,6 +95,9 @@ func TestBuiltinModelTable(t *testing.T) {
 		if b.RefusalFallback && b.Provider != "anthropic" {
 			t.Errorf("%q: refusal fallback is an Anthropic API feature", b.Name)
 		}
+		if b.AdaptiveThinking && b.Provider != "anthropic" {
+			t.Errorf("%q: adaptive thinking is an Anthropic API feature", b.Name)
+		}
 	}
 	for _, p := range Presets {
 		if p.DefaultAlias == "" {
