@@ -4,10 +4,25 @@ Thanks for helping! Issues and pull requests are welcome in English or Chinese.
 
 ## Proposing work
 
-Planned work is tracked as issues with `priority/P0`–`priority/P3` and `area/*` labels.
-Features labelled `needs-design` are discussed in their issue first: the design and its
-open decisions are agreed there, the label is removed, and only then is the feature
-implemented. Small fixes can go straight to a pull request.
+Planned work is tracked as issues. Features labelled `needs-design` are discussed in
+their issue first: the design and its open decisions are agreed there, the label is
+removed, and only then is the feature implemented. Small fixes can go straight to a
+pull request.
+
+### Labels
+
+| Group | Labels | Used on |
+|---|---|---|
+| Type | `bug`, `enhancement`, `documentation`, `chore` | every issue, one of them |
+| Priority (when) | `priority/critical`: fix now; `priority/high`: next release; `priority/medium`: planned; `priority/low`: idea | every triaged issue |
+| Severity (how bad) | `severity/critical`: a safety promise is broken; `severity/major`: wrong verdict, crash or a feature unusable; `severity/minor`: workaround exists or cosmetic | bugs only |
+| Area | `area/agent`, `cli`, `llm`, `mysql`, `mongodb`, `security`, `lab`, `eval`, `release`, `ci`, `integrations` | at least one |
+| Status | `needs-triage`, `needs-design`, `blocked`, `question`, `duplicate`, `invalid`, `wontfix` | as needed |
+| Contributors | `good first issue`, `help wanted` | as needed |
+
+New issues from the templates start with `needs-triage`; a maintainer sets priority,
+area and, for bugs, severity, then removes it. Security issues (`severity/critical`
+material) are reported privately, see [SECURITY.md](SECURITY.md).
 
 ## Development setup
 

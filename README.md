@@ -238,7 +238,7 @@ lab                  local test lab for development: disposable MySQL plus incid
   investigations
 
 All planned work is tracked as [issues](https://github.com/yinx0004/wuzuo/issues), labelled
-`priority/P0` to `priority/P3`.
+by priority (`priority/critical`, `high`, `medium`, `low`) and area.
 
 ## Contributing
 
