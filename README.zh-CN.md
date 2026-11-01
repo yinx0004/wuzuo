@@ -86,6 +86,7 @@ make lab-destroy                           # 彻底删除靶场
 |---|---|
 | `wuzuo ask <报案>` | 调查并输出尸格（`-m 模型`、`-t 目标`、`--json`、`-q`） |
 | `wuzuo case list \| show <id>` | 浏览历史案件（支持 ID 前缀） |
+| `wuzuo case show <id> --transcript` | 逐轮查看调查过程：模型看到了什么、思考摘要、调用了哪些探针、返回了什么（加 `--full` 显示完整内容） |
 | `wuzuo case replay <id>` | 用封存的证物重新验尸，例如换一个模型：`-m sonnet` |
 | `wuzuo models` | 列出 `-m` 可用的模型短名，以及哪些 key 已设置 |
 | `wuzuo models fetch` | 向各服务商查询当前可用的模型，提示更新的和已下线的 |

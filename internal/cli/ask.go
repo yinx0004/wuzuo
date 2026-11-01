@@ -18,6 +18,7 @@ import (
 	"github.com/yinx0004/wuzuo/internal/evidence"
 	"github.com/yinx0004/wuzuo/internal/llm"
 	"github.com/yinx0004/wuzuo/internal/report"
+	"github.com/yinx0004/wuzuo/internal/version"
 	"github.com/yinx0004/wuzuo/pkg/toolset"
 )
 
@@ -140,6 +141,32 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 	}
 	fmt.Fprintf(progress, "case %s, model %s/%s (%s)\n", c.ID, resolved.Preset, resolved.Model, resolved.Source)
 
+	transcript, err := store.OpenTranscript(c.ID)
+	if err != nil {
+		return fmt.Errorf("open transcript: %w", err)
+	}
+	defer transcript.Close()
+	transcript.Record(cases.CaseEntry{
+		Type:     cases.EntryCase,
+		Time:     c.Started,
+		CaseID:   c.ID,
+		Version:  version.Version,
+		Question: r.question,
+		Targets:  r.targets,
+		ReplayOf: r.replayOf,
+		Settings: map[string]any{
+			"effort":             resolved.Effort,
+			"thinking_summary":   resolved.ThinkingSummary,
+			"refusal_fallback":   resolved.RefusalFallback,
+			"max_steps":          cfg.LLM.MaxSteps,
+			"max_evidence_chars": cfg.Safety.MaxEvidenceChars,
+			"query_timeout":      cfg.Safety.QueryTimeout.Std().String(),
+			"redact":             *cfg.Safety.Redact,
+			"allow_explain":      cfg.Safety.AllowExplain,
+			"allow_raw_sql":      cfg.Safety.AllowRawSQL,
+		},
+	})
+
 	res, runErr := agent.Investigate(cmd.Context(), agent.Options{
 		Provider:         provider,
 		Tools:            r.tools,
@@ -147,6 +174,7 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 		MaxSteps:         cfg.LLM.MaxSteps,
 		MaxEvidenceChars: cfg.Safety.MaxEvidenceChars,
 		OnEvent:          func(e agent.Event) { printEvent(progress, e) },
+		Recorder:         agent.RecorderFunc(func(e agent.Entry) { transcript.Record(e) }),
 	}, r.input)
 
 	c.Finished = time.Now().UTC()
@@ -160,10 +188,18 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 			CacheWrite: res.Usage.CacheWriteTokens,
 		}
 	}
+	end := cases.EndEntry{Type: cases.EntryEnd, Time: c.Finished, Status: cases.StatusClosed, Steps: c.Steps, Tokens: c.Tokens}
+	if runErr != nil {
+		end.Status, end.Error = cases.StatusFailed, runErr.Error()
+	}
+	transcript.Record(end)
+	if err := transcript.Err(); err != nil {
+		fmt.Fprintln(cmd.ErrOrStderr(), "warning:", err)
+	}
 	if runErr != nil {
 		c.Status, c.Error = cases.StatusFailed, runErr.Error()
 		_ = store.Save(c)
-		return fmt.Errorf("case %s: %w (case files kept in %s)", c.ID, runErr, displayPath(store.Dir(c.ID)))
+		return fmt.Errorf("case %s: %w (case files kept in %s; see `wuzuo case show %s --transcript`)", c.ID, runErr, displayPath(store.Dir(c.ID)), c.ID)
 	}
 	c.Status = cases.StatusClosed
 	if err := store.Save(c); err != nil {
@@ -176,7 +212,7 @@ func runCase(cmd *cobra.Command, g *globalFlags, cfg *config.Config, out runOutp
 	}
 	fmt.Fprintf(progress, "closed in %s: %d steps, %d evidence, %s\n",
 		c.Finished.Sub(c.Started).Round(time.Second), c.Steps, len(locker.All()), tokenSummary(c.Tokens))
-	fmt.Fprintf(progress, "case files: %s/ (case.json, report.md, report.json, evidence/)\n\n", displayPath(store.Dir(c.ID)))
+	fmt.Fprintf(progress, "case files: %s/ (case.json, report.md, report.json, transcript.jsonl, evidence/)\n\n", displayPath(store.Dir(c.ID)))
 	return printReport(cmd.OutOrStdout(), out.json, res.Autopsy, md)
 }
 

@@ -22,6 +22,15 @@ API keys and DSNs come from environment variables or from `~/.wuzuo/credentials`
 the setup wizard writes with mode 0600. `config.yaml` never contains secrets. Report
 any path by which a secret ends up elsewhere: logs, case files, the config, or the model.
 
+## What WuZuo keeps on disk
+
+Each case directory (`~/.wuzuo/cases/<id>/`, files mode 0600) holds the sealed
+evidence, the report, and `transcript.jsonl`: every message exchanged with the model,
+including the system prompt, the redacted probe output it was shown, and the model's
+replies and thinking summaries. The transcript contains exactly what was sent to and
+received from the model, so it is as sensitive as that conversation and contains no
+API keys or DSNs.
+
 ## What WuZuo sends to the model
 
 The complaint you type, target names and descriptions, and redacted probe output. Probe

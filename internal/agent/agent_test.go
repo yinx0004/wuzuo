@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -186,5 +187,102 @@ func TestConcurrentProbesRecordOwnDuration(t *testing.T) {
 	slow, _ := locker.Get("E2")
 	if fast.DurationMS > 100 || slow.DurationMS < 290 {
 		t.Fatalf("fast=%dms slow=%dms", fast.DurationMS, slow.DurationMS)
+	}
+}
+
+type entries struct{ list []Entry }
+
+func (r *entries) Record(e Entry) { r.list = append(r.list, e) }
+
+func (r *entries) types() []string {
+	out := make([]string, len(r.list))
+	for i, e := range r.list {
+		out[i] = fmt.Sprintf("%s/%d", e.Type, e.Step)
+	}
+	return out
+}
+
+func TestTranscriptRecordsEveryStep(t *testing.T) {
+	p := &scripted{turns: []llm.Message{
+		{Text: "Looking.", Thinking: "Locks first, cheapest probe.", ToolCalls: []llm.ToolCall{
+			call("1", "propose_hypothesis", `{"name":"Lock contention"}`),
+			call("2", "probe_locks", `{"target":"db1"}`),
+		}},
+		{Text: "thinking out loud"}, // no tool call: WuZuo nudges
+		{ToolCalls: []llm.ToolCall{call("3", "submit_autopsy", `{"title":"t","summary":"s","cause_of_death":{"statement":"x","confidence":"high","evidence":["E9"]}}`)}},
+		{ToolCalls: []llm.ToolCall{call("4", "submit_autopsy", `{"title":"t","summary":"s","cause_of_death":{"statement":"x","confidence":"high","evidence":["E1"]}}`)}},
+	}}
+	locker, _ := evidence.NewLocker("", true)
+	rec := &entries{}
+	if _, err := Investigate(context.Background(), Options{
+		Provider: p,
+		Tools:    []toolset.Tool{staticTool{name: "probe_locks", out: "blocking pid 42"}},
+		Locker:   locker,
+		Recorder: rec,
+	}, Input{Question: "writes hang"}); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"start/0", "user/1", "assistant/1", "user/2", "assistant/2", "user/3", "assistant/3", "error/3", "user/4", "assistant/4", "user/5"}
+	if got := rec.types(); strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("entries:\n got  %v\n want %v", got, want)
+	}
+	start := rec.list[0]
+	if start.System != systemPrompt || len(start.Tools) == 0 || start.Model != "fake-1" {
+		t.Errorf("start: %+v", start)
+	}
+	if !strings.Contains(rec.list[1].Text, "Complaint: writes hang") {
+		t.Errorf("first prompt: %q", rec.list[1].Text)
+	}
+	a1 := rec.list[2]
+	if a1.Thinking != "Locks first, cheapest probe." || len(a1.ToolCalls) != 2 || a1.Usage == nil || a1.Usage.Input != 10 {
+		t.Errorf("assistant 1: %+v", a1)
+	}
+	results := rec.list[3].ToolResults
+	if len(results) != 2 || results[0].Tool != "propose_hypothesis" || results[1].Evidence != "E1" ||
+		!strings.Contains(results[1].Content, "blocking pid 42") {
+		t.Errorf("results recorded as sent: %+v", results)
+	}
+	if !strings.Contains(rec.list[5].Text, "call submit_autopsy") {
+		t.Errorf("nudge not recorded: %+v", rec.list[5])
+	}
+	if e := rec.list[7]; e.Kind != ErrorReportRejected || !strings.Contains(e.Detail, "unknown evidence E9") {
+		t.Errorf("rejection: %+v", e)
+	}
+	if last := rec.list[10]; !last.Final || last.ToolResults[0].Content != "accepted" {
+		t.Errorf("final results: %+v", last)
+	}
+	for _, e := range rec.list {
+		if e.Time.IsZero() {
+			t.Errorf("entry without time: %+v", e)
+		}
+	}
+}
+
+type failing struct{ scripted }
+
+func (f *failing) Chat(ctx context.Context, req *llm.Request) (*llm.Response, error) {
+	if len(f.turns) == 0 {
+		return nil, errors.New("connection reset")
+	}
+	return f.scripted.Chat(ctx, req)
+}
+
+func TestTranscriptKeepsStepsBeforeAFailure(t *testing.T) {
+	p := &failing{scripted{turns: []llm.Message{{ToolCalls: []llm.ToolCall{call("1", "probe_locks", `{}`)}}}}}
+	locker, _ := evidence.NewLocker("", true)
+	rec := &entries{}
+	_, err := Investigate(context.Background(), Options{
+		Provider: p, Locker: locker, Recorder: rec,
+		Tools: []toolset.Tool{staticTool{name: "probe_locks", out: "x"}},
+	}, Input{Question: "q"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	want := "start/0 user/1 assistant/1 user/2 error/2"
+	if got := strings.Join(rec.types(), " "); got != want {
+		t.Fatalf("got %s, want %s", got, want)
+	}
+	if e := rec.list[4]; e.Kind != ErrorLLM || !strings.Contains(e.Detail, "connection reset") {
+		t.Errorf("error entry: %+v", e)
 	}
 }
