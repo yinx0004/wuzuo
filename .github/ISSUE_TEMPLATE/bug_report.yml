@@ -1,7 +1,11 @@
 name: Bug report
 description: Something does not work as documented
-labels: [bug]
+labels: [bug, needs-triage]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security issues** (WuZuo wrote to a target database, data or secrets reached the model or disk, the read-only guard was bypassed) must not be filed here. Report them privately: https://github.com/yinx0004/wuzuo/security/advisories/new
   - type: textarea
     id: what
     attributes:
@@ -13,6 +17,16 @@ body:
     id: expected
     attributes:
       label: What you expected
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Impact
+      description: A maintainer confirms this and sets the severity label.
+      options:
+        - "Major: wrong verdict, crash, or a feature unusable"
+        - "Minor: there is a workaround, or it is cosmetic"
+    validations:
+      required: true
   - type: input
     id: version
     attributes:
@@ -22,5 +36,10 @@ body:
   - type: input
     id: env
     attributes:
-      label: Database and LLM
-      placeholder: MySQL 8.0.36, anthropic/claude-opus-5-5
+      label: Database and model
+      placeholder: MySQL 8.0.36, model opus
+  - type: input
+    id: case
+    attributes:
+      label: Case ID (optional)
+      description: "`wuzuo case show <id> --transcript` shows what the model saw. Share only parts you are comfortable sharing."
