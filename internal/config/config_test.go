@@ -5,6 +5,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -43,7 +44,8 @@ func TestResolveModel(t *testing.T) {
 		{name: "raw ID uses configured provider", env: map[string]string{"ARK_API_KEY": "a"}, llm: LLM{Provider: "ark", Model: "ep-777"}, wantKind: KindOpenAI, wantModel: "ep-777", wantURL: "https://ark.cn-beijing.volces.com/api/v3"},
 		{name: "ollama tag with colon is a raw ID", env: map[string]string{"OPENAI_API_KEY": "k"}, llm: LLM{Provider: "openai", BaseURL: "http://h/v1"}, override: "qwen3:32b", wantKind: KindOpenAI, wantModel: "qwen3:32b", wantURL: "http://h/v1"},
 		{name: "llm.base_url does not leak into another provider", env: map[string]string{"ANTHROPIC_API_KEY": "k", "OPENAI_API_KEY": "o"}, llm: LLM{Provider: "openai", Model: "m", BaseURL: "http://gateway/v1"}, override: "opus", wantKind: KindAnthropic, wantModel: "claude-opus-5-5"},
-		{name: "anthropic without key uses SDK chain", env: map[string]string{}, llm: LLM{Provider: "anthropic"}, wantKind: KindAnthropic, wantModel: "claude-opus-5-5"},
+		{name: "anthropic without key but with federation uses SDK chain", env: map[string]string{"ANTHROPIC_FEDERATION_RULE_ID": "r"}, llm: LLM{Provider: "anthropic"}, wantKind: KindAnthropic, wantModel: "claude-opus-5-5"},
+		{name: "anthropic alias without any credentials", env: map[string]string{}, llm: LLM{Model: "opus"}, wantErr: true},
 		{name: "alias whose key is missing", env: map[string]string{}, override: "deepseek", wantErr: true},
 		{name: "nothing configured", env: map[string]string{}, wantErr: true},
 		{name: "unknown provider", env: map[string]string{}, llm: LLM{Provider: "nope"}, wantErr: true},
@@ -186,5 +188,12 @@ func TestValidateModels(t *testing.T) {
 		if err := c.Validate(); err == nil {
 			t.Errorf("expected error for %v", m)
 		}
+	}
+}
+
+func TestMissingKeyMessageNamesModelAndVariable(t *testing.T) {
+	_, err := (&Config{LLM: LLM{Model: "sonnet"}}).ResolveModel("", env(map[string]string{}))
+	if err == nil || !strings.Contains(err.Error(), `model "sonnet" (anthropic) needs an API key: export ANTHROPIC_API_KEY=`) {
+		t.Fatalf("err = %v", err)
 	}
 }

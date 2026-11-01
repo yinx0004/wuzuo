@@ -4,6 +4,7 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -47,6 +48,26 @@ and writes an autopsy report where every conclusion cites sealed evidence.`,
 		Version:       fmt.Sprintf("%s (commit %s, built %s)", version.Version, version.Commit, version.Date),
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		// Bare `wuzuo`: on first use in a terminal, offer setup; otherwise help.
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			path := g.configPathOrDefault()
+			if _, err := os.Stat(path); err == nil || !interactive() {
+				return cmd.Help()
+			}
+			errOut := cmd.ErrOrStderr()
+			in := bufio.NewReader(promptInput)
+			fmt.Fprintf(errOut, "No WuZuo configuration found (%s).\n", path)
+			yes, err := confirm(in, errOut, "Set it up now?", true)
+			if err != nil {
+				return err
+			}
+			if !yes {
+				fmt.Fprintln(errOut, "Run `wuzuo init` when you are ready.")
+				fmt.Fprintln(errOut)
+				return cmd.Help()
+			}
+			return runSetup(in, errOut, path)
+		},
 	}
 	root.PersistentFlags().StringVarP(&g.configPath, "config", "c", "", "config file (default $WUZUO_CONFIG or ~/.wuzuo/config.yaml)")
 	root.AddCommand(

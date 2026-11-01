@@ -25,6 +25,8 @@
 go install github.com/yinx0004/wuzuo/cmd/wuzuo@latest
 ```
 
+**首次设置**：直接运行 `wuzuo`。第一次使用时，它会带你选择模型、添加 MySQL 目标，写好 `~/.wuzuo/config.yaml`，并列出还需要 export 的环境变量。下面是这些设置的手动方式。
+
 **选择模型**：WuZuo 会从环境变量自动识别，设置以下任意一组即可，不需要写配置。
 
 | 环境变量 | 模型服务 | 默认模型 |
@@ -70,7 +72,7 @@ deploy/lab/scenarios/reset.sh
 | `wuzuo models` | 列出 `-m` 可用的模型短名，以及哪些 key 已设置 |
 | `wuzuo toolset list \| check` | 列出探针、检查前置条件 |
 | `wuzuo toolset run <探针> [json]` | 手动执行单个探针 |
-| `wuzuo init` | 生成配置文件 `~/.wuzuo/config.yaml` |
+| `wuzuo init` | 首次设置：选择模型、添加目标、生成 `~/.wuzuo/config.yaml` |
 
 需要模型自己写 SQL 的两个探针默认关闭，可以在配置文件的 `safety:` 下分别打开：`allow_explain`（`mysql_explain`，查看 SELECT 的执行计划，不实际执行）和 `allow_raw_sql`（`mysql_query`，受控的只读查询）。
 

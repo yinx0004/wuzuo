@@ -18,10 +18,11 @@ func newInitCmd(g *globalFlags) *cobra.Command {
 	var force bool
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Write a starter config file",
-		Long: `Write a commented starter config to ~/.wuzuo/config.yaml (or --config).
-In a terminal it lets you choose the default model from those whose API key
-is set; otherwise it uses the default WuZuo would pick.`,
+		Short: "Set up WuZuo: choose a model, add a target, write the config file",
+		Long: `In a terminal, walk through choosing the default model and adding a MySQL
+target, then write ~/.wuzuo/config.yaml (or --config) and list what is left
+to do. Without a terminal, write a commented starter file using the default
+model.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			path := g.configPathOrDefault()
 			if _, err := os.Stat(path); err == nil && !force {
@@ -29,24 +30,19 @@ is set; otherwise it uses the default WuZuo would pick.`,
 			} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return err
 			}
-			cfg := &config.Config{}
+			if interactive() {
+				return runSetup(bufio.NewReader(promptInput), cmd.ErrOrStderr(), path)
+			}
 			model := ""
-			if def, ok := cfg.DefaultChoice(envLookup); ok {
+			if def, ok := (&config.Config{}).DefaultChoice(envLookup); ok {
 				model = def.Name
-				if interactive() {
-					chosen, err := pickModel(bufio.NewReader(promptInput), cmd.ErrOrStderr(), cfg.Choices(envLookup), def)
-					if err != nil {
-						return err
-					}
-					model = chosen.Name
-				}
 			} else {
-				fmt.Fprintf(cmd.ErrOrStderr(), "no LLM API key found yet; set one (see docs/configuration.md) and fill in llm.model\n")
+				fmt.Fprintln(cmd.ErrOrStderr(), "no LLM API key found yet; set one (see docs/configuration.md) and fill in llm.model")
 			}
 			if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 				return err
 			}
-			if err := os.WriteFile(path, []byte(config.Template(model)), 0o600); err != nil {
+			if err := os.WriteFile(path, []byte(config.Template(model, nil)), 0o600); err != nil {
 				return err
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\nnext: add a target, then run `wuzuo toolset check`\n", path)

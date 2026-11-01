@@ -12,8 +12,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Template returns a commented starter config with llm.model set to model.
-func Template(model string) string {
+// Template returns a commented starter config with llm.model set to model and
+// the given targets (an commented example when there are none).
+func Template(model string, targets []Target) string {
 	return fmt.Sprintf(`# WuZuo configuration. Reference: docs/configuration.md
 # Secrets are never stored here: point to environment variables instead.
 
@@ -33,11 +34,7 @@ llm:
 #   local:  { provider: openai, model: qwen3:32b, base_url: http://localhost:11434/v1 }
 
 targets:
-  # - name: prod-orders
-  #   type: mysql
-  #   description: primary of the orders cluster
-  #   dsn_env: WUZUO_PROD_ORDERS_DSN   # e.g. wuzuo:***@tcp(10.0.0.5:3306)/
-
+%s
 safety:
   redact: true              # normalize SQL literals, strip secrets and row dumps
   query_timeout: 10s
@@ -45,7 +42,26 @@ safety:
   # Probes where the model writes SQL. Both run read-only and are off by default.
   allow_explain: false      # mysql_explain: plans of SELECTs (never executes them)
   allow_raw_sql: false      # mysql_query: guarded free-form read-only queries
-`, model)
+`, model, targetsYAML(targets))
+}
+
+func targetsYAML(targets []Target) string {
+	if len(targets) == 0 {
+		return `  # - name: prod-orders
+  #   type: mysql
+  #   description: primary of the orders cluster
+  #   dsn_env: WUZUO_PROD_ORDERS_DSN   # e.g. wuzuo:***@tcp(10.0.0.5:3306)/
+`
+	}
+	var b bytes.Buffer
+	for _, t := range targets {
+		fmt.Fprintf(&b, "  - name: %q\n    type: %s\n", t.Name, t.Type)
+		if t.Description != "" {
+			fmt.Fprintf(&b, "    description: %q\n", t.Description)
+		}
+		fmt.Fprintf(&b, "    dsn_env: %s   # e.g. wuzuo:***@tcp(10.0.0.5:3306)/\n", t.DSNEnv)
+	}
+	return b.String()
 }
 
 // SaveDefaultModel sets llm.model in the config file at path, creating the
@@ -58,7 +74,7 @@ func SaveDefaultModel(path, model, provider string) error {
 		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			return err
 		}
-		return os.WriteFile(path, []byte(Template(model)), 0o600)
+		return os.WriteFile(path, []byte(Template(model, nil)), 0o600)
 	}
 	if err != nil {
 		return err

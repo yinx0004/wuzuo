@@ -84,7 +84,13 @@ go install github.com/yinx0004/wuzuo/cmd/wuzuo@latest
 Prebuilt binaries and a container image (`ghcr.io/yinx0004/wuzuo`) are published with
 each release.
 
-### 2. Choose a model
+### 2. Set up
+
+Run `wuzuo`. On first use it walks you through choosing a model and adding a MySQL
+target, writes `~/.wuzuo/config.yaml`, and prints the `export` lines you still need.
+The rest of this section describes the same settings by hand.
+
+### 3. Choose a model
 
 WuZuo detects a provider from the environment. You do not have to configure anything
 when one of these is set:
@@ -102,7 +108,7 @@ Pick a model by short name: `-m opus`, `-m sonnet`, `-m deepseek`, `-m qwen`, or
 `wuzuo ask` lets you choose from the models whose key is set and offers to save the
 choice.
 
-### 3. Create a read-only account and point WuZuo at it
+### 4. Create a read-only account and point WuZuo at it
 
 ```sql
 -- docs/mysql-privileges.sql
@@ -146,7 +152,7 @@ deploy/lab/scenarios/reset.sh
 | `wuzuo models` | Model short names usable with `-m`, and which keys are set |
 | `wuzuo toolset list \| check` | List probes and check their prerequisites |
 | `wuzuo toolset run <probe> [json]` | Run one probe by hand |
-| `wuzuo init` | Write a starter config to `~/.wuzuo/config.yaml` |
+| `wuzuo init` | First-time setup: choose a model, add a target, write `~/.wuzuo/config.yaml` |
 
 ## MySQL probes
 

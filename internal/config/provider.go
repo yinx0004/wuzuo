@@ -3,7 +3,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -130,7 +133,7 @@ func (c *Config) ResolveModel(override string, getenv func(string) string) (*Res
 			}
 		}
 		if provider == "" {
-			return nil, fmt.Errorf("no LLM provider configured: set one of %s, or run `wuzuo init`", allKeyEnvs())
+			return nil, errors.New(NoKeyHelp())
 		}
 	}
 	p := preset(provider)
@@ -164,8 +167,12 @@ func (c *Config) ResolveModel(override string, getenv func(string) string) (*Res
 	} else {
 		r.APIKey = firstEnv(getenv, p.KeyEnvs)
 	}
-	if r.APIKey == "" && p.Kind != KindAnthropic {
-		return nil, fmt.Errorf("provider %s: set %s", p.Name, strings.Join(p.KeyEnvs, " or "))
+	if r.APIKey == "" && (p.Kind != KindAnthropic || !anthropicSDKCredentials(getenv)) {
+		what := p.Name
+		if name != "" {
+			what = fmt.Sprintf("model %q (%s)", name, p.Name)
+		}
+		return nil, fmt.Errorf("%s needs an API key: export %s=... in your shell (see `wuzuo models`)", what, p.KeyEnvs[0])
 	}
 
 	r.BaseURL = baseURL
@@ -274,6 +281,16 @@ func (c *Config) DefaultChoice(getenv func(string) string) (Choice, bool) {
 	return Choice{}, false
 }
 
+// KeyEnvFor returns the key variable of a provider, whether it is set, and
+// whether the provider is known at all.
+func KeyEnvFor(provider string, getenv func(string) string) (keyEnv string, set, known bool) {
+	if preset(provider) == nil {
+		return "", false, false
+	}
+	keyEnv, set = keyStatus(provider, getenv)
+	return keyEnv, set, true
+}
+
 func keyStatus(provider string, getenv func(string) string) (string, bool) {
 	p := preset(provider)
 	if p == nil {
@@ -338,10 +355,42 @@ func presetNames() string {
 	return strings.Join(n, ", ")
 }
 
-func allKeyEnvs() string {
-	var n []string
-	for _, p := range Presets {
-		n = append(n, p.KeyEnvs[0])
+// anthropicSDKCredentials reports whether the Anthropic SDK can find
+// credentials without an API key variable: workload identity federation or a
+// profile written by `ant auth login`.
+func anthropicSDKCredentials(getenv func(string) string) bool {
+	if getenv("ANTHROPIC_FEDERATION_RULE_ID") != "" || getenv("ANTHROPIC_PROFILE") != "" {
+		return true
 	}
-	return strings.Join(n, ", ")
+	dir := getenv("XDG_CONFIG_HOME")
+	if dir == "" && getenv("HOME") != "" {
+		dir = filepath.Join(getenv("HOME"), ".config")
+	}
+	if dir == "" {
+		return false
+	}
+	_, err := os.Stat(filepath.Join(dir, "anthropic"))
+	return err == nil
+}
+
+// NoKeyHelp explains which environment variables enable which models. It is
+// shown when no LLM API key is set.
+func NoKeyHelp() string {
+	var b strings.Builder
+	b.WriteString("no LLM API key found. Set one of these in your shell and run again:\n")
+	for _, p := range Presets {
+		var names []string
+		for _, m := range BuiltinModels {
+			if m.Provider == p.Name {
+				names = append(names, m.Name)
+			}
+		}
+		what := strings.Join(names, ", ")
+		if p.ModelEnv != "" {
+			what = fmt.Sprintf("%s models; also set %s, or use -m %s/<model-id>", p.Name, p.ModelEnv, p.Name)
+		}
+		fmt.Fprintf(&b, "  export %-20s # %s\n", p.KeyEnvs[0]+"=...", what)
+	}
+	b.WriteString("Then run `wuzuo init` to choose a default model and add targets. See docs/configuration.md.")
+	return b.String()
 }

@@ -29,13 +29,28 @@ variables. A missing file named explicitly with 1 or 2 is an error.
 `$WUZUO_HOME` also holds the case archive (`$WUZUO_HOME/cases`) unless `cases_dir` says
 otherwise.
 
-Create a starter file with:
+### First-time setup
 
-```bash
-wuzuo init            # writes ~/.wuzuo/config.yaml (mode 0600); --force overwrites
+Run `wuzuo` with no arguments. If there is no config file yet, it offers to set one up;
+`wuzuo init` starts the same steps directly (`--force` overwrites an existing file):
+
+1. Choose the default model. Models whose API key is already set are offered first. If
+   no key is set yet, every built-in model is listed with the key it needs.
+2. Optionally add a MySQL target: a name, a description for the model, and the name of
+   the environment variable that will hold its DSN.
+3. WuZuo writes the config file (mode 0600) and lists what is left, for example:
+
+```text
+Next steps:
+  export ANTHROPIC_API_KEY=...        # API key for opus
+  export WUZUO_ORDERS_PRIMARY_DSN='wuzuo:<password>@tcp(<host>:3306)/'   # account: docs/mysql-privileges.sql
+  (add the export lines to your shell profile to keep them)
+  wuzuo toolset check                  # verify model, connectivity and privileges
+  wuzuo ask "describe what is wrong"
 ```
 
-In a terminal, `init` lets you pick the default model from those whose API key is set.
+Setup never asks for API keys or passwords. Without a terminal, `wuzuo init` writes the
+commented starter file with the default model instead.
 
 ## Running from environment variables only
 
@@ -133,6 +148,8 @@ Save "sonnet" as the default model in /home/you/.wuzuo/config.yaml? [Y/n]
   if needed. Other settings and comments in an existing file are kept.
 - Without a terminal (CI, cron, pipes into stdin), WuZuo does not prompt. It uses the
   default and prints a note.
+- If no API key is set at all, WuZuo stops before creating a case and prints which
+  variable enables which models.
 
 `wuzuo init` offers the same choice when it writes a new config file.
 
@@ -290,7 +307,8 @@ wuzuo toolset run mysql_overview   # run one probe by hand
 
 | Message | Fix |
 |---|---|
-| `no LLM provider configured` | Set one of the key variables above, or `llm.provider` |
+| `no LLM API key found` | Export one of the key variables listed in the message |
+| `model "opus" (anthropic) needs an API key` | The configured model's key is not set; export it, or pick another model with `-m` |
 | `provider openai: no model selected` | Use `-m openai/<id>`, set `OPENAI_MODEL` (`ARK_MODEL` for ark), or define an alias |
 | `provider deepseek: set DEEPSEEK_API_KEY` | The chosen name belongs to a provider whose key is not set; see `wuzuo models` |
 | `api_key_env: environment variable X is not set` | Export the variable named in the alias or in `llm.api_key_env` |
