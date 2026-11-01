@@ -2,7 +2,7 @@
 
 // Package agent runs an investigation: the model proposes hypotheses, calls
 // read-only probes whose outputs are sealed as evidence, rules hypotheses out,
-// and finally submits an autopsy report that is validated against the
+// and finally submits a diagnosis report that is validated against the
 // evidence locker before it is accepted.
 package agent
 
@@ -15,11 +15,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yinx0004/wuzuo/internal/cases"
-	"github.com/yinx0004/wuzuo/internal/evidence"
-	"github.com/yinx0004/wuzuo/internal/llm"
-	"github.com/yinx0004/wuzuo/internal/report"
-	"github.com/yinx0004/wuzuo/pkg/toolset"
+	"github.com/yinx0004/yuanfang/internal/cases"
+	"github.com/yinx0004/yuanfang/internal/evidence"
+	"github.com/yinx0004/yuanfang/internal/llm"
+	"github.com/yinx0004/yuanfang/internal/report"
+	"github.com/yinx0004/yuanfang/pkg/toolset"
 )
 
 // Target is a system the investigator may examine.
@@ -73,18 +73,18 @@ type Options struct {
 
 // Result is the outcome of an investigation.
 type Result struct {
-	Autopsy    *report.Autopsy
+	Diagnosis  *report.Diagnosis
 	Hypotheses []cases.Hypothesis
 	Steps      int
 	Usage      llm.Usage
 }
 
 // ErrNoVerdict is returned when the model never submits an acceptable report.
-var ErrNoVerdict = errors.New("investigation ended without an accepted autopsy report")
+var ErrNoVerdict = errors.New("investigation ended without an accepted diagnosis report")
 
 const maxNudges = 3
 
-// Investigate runs the loop until a valid autopsy is submitted.
+// Investigate runs the loop until a valid diagnosis is submitted.
 func Investigate(ctx context.Context, opts Options, in Input) (*Result, error) {
 	if opts.Provider == nil || opts.Locker == nil {
 		return nil, errors.New("agent: provider and locker are required")
@@ -148,7 +148,7 @@ func Investigate(ctx context.Context, opts Options, in Input) (*Result, error) {
 				inv.record(Entry{Type: EntryError, Step: step, Kind: ErrorNoVerdict, Detail: "the model kept replying without tool calls"})
 				return inv.res, ErrNoVerdict
 			}
-			nudge = "Continue the investigation. When the verdict is clear, call submit_autopsy; the report only counts once submitted through that tool."
+			nudge = "Continue the investigation. When the verdict is clear, call submit_diagnosis; the report only counts once submitted through that tool."
 			if resp.StopReason == llm.StopMaxTokens {
 				nudge = "Your reply was cut off. Be more concise and continue with tool calls."
 			}
@@ -164,7 +164,7 @@ func Investigate(ctx context.Context, opts Options, in Input) (*Result, error) {
 			return inv.res, nil
 		}
 		if step == opts.MaxSteps {
-			nudge = "Step budget exhausted. Call submit_autopsy now with the evidence you have; mark anything unsupported as low confidence and list what remains unknown in open_questions."
+			nudge = "Step budget exhausted. Call submit_diagnosis now with the evidence you have; mark anything unsupported as low confidence and list what remains unknown in open_questions."
 		}
 		inv.record(Entry{Type: EntryUser, Step: step + 1, ToolResults: recorded, Text: nudge})
 		msgs = append(msgs, llm.Message{Role: llm.RoleUser, ToolResults: results, Text: nudge})

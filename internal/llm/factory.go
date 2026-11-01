@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yinx0004/wuzuo/internal/config"
+	"github.com/yinx0004/yuanfang/internal/config"
 )
 
 // New builds a Provider from a resolved configuration.

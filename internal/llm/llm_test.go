@@ -183,7 +183,7 @@ func TestOpenAIListModels(t *testing.T) {
 func TestModelNotFoundIsExplained(t *testing.T) {
 	a := serve(t, 404, `{"type":"error","error":{"type":"not_found_error","message":"model: claude-old"}}`)
 	_, err := NewAnthropic(AnthropicOptions{Name: "anthropic", Model: "claude-old", APIKey: "k", BaseURL: a.URL}).Chat(context.Background(), &Request{Messages: []Message{{Role: RoleUser, Text: "hi"}}})
-	if !errors.Is(err, ErrModelNotFound) || !strings.Contains(err.Error(), `"claude-old" is not offered by anthropic`) || !strings.Contains(err.Error(), "wuzuo models fetch") {
+	if !errors.Is(err, ErrModelNotFound) || !strings.Contains(err.Error(), `"claude-old" is not offered by anthropic`) || !strings.Contains(err.Error(), "yuanfang models fetch") {
 		t.Fatalf("anthropic: %v", err)
 	}
 	o := serve(t, 404, `{"error":{"message":"The model does not exist","type":"invalid_request_error","code":"model_not_found"}}`)

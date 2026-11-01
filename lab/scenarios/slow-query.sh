@@ -15,4 +15,4 @@ for w in 1 2 3 4; do
     done' "$DURATION"
 done
 echo "staged: 4 workers running unindexed lookups for ${DURATION}s"
-echo "try:    wuzuo ask \"the orders page got slow, p99 jumped\" -t lab"
+echo "try:    yuanfang ask \"the orders page got slow, p99 jumped\" -t lab"

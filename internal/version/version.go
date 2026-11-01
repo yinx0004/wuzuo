@@ -3,7 +3,7 @@
 // Package version holds build metadata injected via -ldflags.
 package version
 
-// Set by GoReleaser: -X github.com/yinx0004/wuzuo/internal/version.Version=...
+// Set by GoReleaser: -X github.com/yinx0004/yuanfang/internal/version.Version=...
 var (
 	Version = "dev"
 	Commit  = "none"

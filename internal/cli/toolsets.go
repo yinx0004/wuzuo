@@ -9,11 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/yinx0004/wuzuo/internal/agent"
-	"github.com/yinx0004/wuzuo/internal/config"
-	"github.com/yinx0004/wuzuo/pkg/redact"
-	"github.com/yinx0004/wuzuo/pkg/toolset"
-	"github.com/yinx0004/wuzuo/toolsets/mysql"
+	"github.com/yinx0004/yuanfang/internal/agent"
+	"github.com/yinx0004/yuanfang/internal/config"
+	"github.com/yinx0004/yuanfang/pkg/redact"
+	"github.com/yinx0004/yuanfang/pkg/toolset"
+	"github.com/yinx0004/yuanfang/toolsets/mysql"
 )
 
 // buildToolsets instantiates toolsets for the selected targets.
@@ -81,7 +81,7 @@ func newToolsetCmd(g *globalFlags) *cobra.Command {
 			defer closeAll(sets)
 			out := cmd.OutOrStdout()
 			if len(sets) == 0 {
-				fmt.Fprintln(out, "No targets configured. Add targets to the config file or set WUZUO_MYSQL_DSN.")
+				fmt.Fprintln(out, "No targets configured. Add targets to the config file or set YUANFANG_MYSQL_DSN.")
 				return nil
 			}
 			for _, s := range sets {
@@ -106,7 +106,7 @@ func newToolsetCmd(g *globalFlags) *cobra.Command {
 			failed := 0
 			if !cfg.ModelChosen("", envLookup) {
 				if def, ok := cfg.DefaultChoice(envLookup); ok {
-					fmt.Fprintf(out, "✓ llm: no model configured; default would be %s (%s/%s), and `wuzuo ask` will ask you to choose\n",
+					fmt.Fprintf(out, "✓ llm: no model configured; default would be %s (%s/%s), and `yuanfang ask` will ask you to choose\n",
 						def.Name, def.Provider, def.Model)
 				} else if _, err := cfg.ResolveModel("", envLookup); err != nil {
 					fmt.Fprintf(out, "✗ llm: %v\n", err)
@@ -150,8 +150,8 @@ func newToolsetCmd(g *globalFlags) *cobra.Command {
 	run := &cobra.Command{
 		Use:   "run <probe> [json-args]",
 		Short: "Run a single probe by hand and print what the investigator would see",
-		Example: `  wuzuo toolset run mysql_lock_waits
-  wuzuo toolset run mysql_top_statements '{"order_by":"no_index","limit":5}'`,
+		Example: `  yuanfang toolset run mysql_lock_waits
+  yuanfang toolset run mysql_top_statements '{"order_by":"no_index","limit":5}'`,
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := g.load()
@@ -193,7 +193,7 @@ func newToolsetCmd(g *globalFlags) *cobra.Command {
 			if sw, ok := disabledProbes[args[0]]; ok {
 				return fmt.Errorf("%s is disabled; set safety.%s: true in the config to enable it", args[0], sw)
 			}
-			return fmt.Errorf("no probe named %q (see `wuzuo toolset list`)", args[0])
+			return fmt.Errorf("no probe named %q (see `yuanfang toolset list`)", args[0])
 		},
 	}
 	for _, c := range []*cobra.Command{list, check, run} {

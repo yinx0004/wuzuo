@@ -26,7 +26,7 @@ type CaseEntry struct {
 	Type     string         `json:"type"`
 	Time     time.Time      `json:"time"`
 	CaseID   string         `json:"case_id"`
-	Version  string         `json:"wuzuo_version"`
+	Version  string         `json:"yuanfang_version"`
 	Question string         `json:"question"`
 	Targets  []string       `json:"targets,omitempty"`
 	ReplayOf string         `json:"replay_of,omitempty"`

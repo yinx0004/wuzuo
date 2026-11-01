@@ -2,7 +2,7 @@
 
 [中文](configuration.zh-CN.md)
 
-WuZuo runs with **no configuration file at all**. Environment variables are enough.
+Yuanfang runs with **no configuration file at all**. Environment variables are enough.
 A config file adds several targets, a fixed model, and safety settings.
 
 - [Where the config file lives](#where-the-config-file-lives): first-time setup, secrets
@@ -17,22 +17,22 @@ A config file adds several targets, a fixed model, and safety settings.
 
 ## Where the config file lives
 
-WuZuo uses the first of these that applies:
+Yuanfang uses the first of these that applies:
 
 1. `--config` / `-c <path>` on the command line
-2. `$WUZUO_CONFIG`
-3. `$WUZUO_HOME/config.yaml`, where `$WUZUO_HOME` defaults to `~/.wuzuo`
+2. `$YUANFANG_CONFIG`
+3. `$YUANFANG_HOME/config.yaml`, where `$YUANFANG_HOME` defaults to `~/.yuanfang`
 
-A missing file at the default location (3) is fine: WuZuo falls back to environment
+A missing file at the default location (3) is fine: Yuanfang falls back to environment
 variables. A missing file named explicitly with 1 or 2 is an error.
 
-`$WUZUO_HOME` also holds the case archive (`$WUZUO_HOME/cases`) unless `cases_dir` says
+`$YUANFANG_HOME` also holds the case archive (`$YUANFANG_HOME/cases`) unless `cases_dir` says
 otherwise.
 
 ### First-time setup
 
-Run `wuzuo` with no arguments. If there is no config file yet, it offers to set one up;
-`wuzuo init` starts the same steps directly (`--force` overwrites an existing file):
+Run `yuanfang` with no arguments. If there is no config file yet, it offers to set one up;
+`yuanfang init` starts the same steps directly (`--force` overwrites an existing file):
 
 1. Choose the default model. Models whose API key is already set are offered first. If
    no key is set yet, every built-in model is listed with the key it needs.
@@ -40,46 +40,46 @@ Run `wuzuo` with no arguments. If there is no config file yet, it offers to set 
    Enter skips.
 3. Optionally add a MySQL target: a name and a description for the model, then the
    connection one field at a time: host or IP, port (default 3306), user (default
-   `wuzuo`) and password (hidden). WuZuo builds the DSN from these, tries to connect,
-   and runs the same checks as `wuzuo toolset check`. Enter on the host skips the
+   `yuanfang`) and password (hidden). Yuanfang builds the DSN from these, tries to connect,
+   and runs the same checks as `yuanfang toolset check`. Enter on the host skips the
    connection. For TLS or a Unix socket, edit the DSN in the credentials file afterwards
    (see [MySQL connection strings](#mysql-connection-strings)).
-4. WuZuo writes the config file, lists every file it created or changed, and lists
+4. Yuanfang writes the config file, lists every file it created or changed, and lists
    anything you skipped, for example:
 
 ```text
 Files written:
-  ~/.wuzuo/config.yaml   created: model opus, target orders-primary
-  ~/.wuzuo/credentials   created: ANTHROPIC_API_KEY
+  ~/.yuanfang/config.yaml   created: model opus, target orders-primary
+  ~/.yuanfang/credentials   created: ANTHROPIC_API_KEY
 
 Next steps:
-  export WUZUO_ORDERS_PRIMARY_DSN='user:password@tcp(host:3306)/'   # account: docs/mysql-privileges.sql
-  (or run `wuzuo init --force` again to enter them; values go to ~/.wuzuo/credentials)
-  wuzuo toolset check                  # verify model, connectivity and privileges
-  wuzuo ask "describe what is wrong"
+  export YUANFANG_ORDERS_PRIMARY_DSN='user:password@tcp(host:3306)/'   # account: docs/mysql-privileges.sql
+  (or run `yuanfang init --force` again to enter them; values go to ~/.yuanfang/credentials)
+  yuanfang toolset check                  # verify model, connectivity and privileges
+  yuanfang ask "describe what is wrong"
 ```
 
 The API key and DSN are not written to `config.yaml`. They go to the credentials file
-(see [Secrets](#secrets)). Without a terminal, `wuzuo init` writes the commented starter
+(see [Secrets](#secrets)). Without a terminal, `yuanfang init` writes the commented starter
 file with the default model and asks nothing.
 
 ### Secrets
 
 `config.yaml` holds settings only and is safe to share. Secrets come from environment
-variables, or from **`$WUZUO_HOME/credentials`** (default `~/.wuzuo/credentials`), which
+variables, or from **`$YUANFANG_HOME/credentials`** (default `~/.yuanfang/credentials`), which
 setup creates:
 
 ```text
-# WuZuo secrets: API keys and database DSNs, one KEY=VALUE per line.
+# Yuanfang secrets: API keys and database DSNs, one KEY=VALUE per line.
 ANTHROPIC_API_KEY=sk-ant-...
-WUZUO_ORDERS_PRIMARY_DSN=wuzuo:...@tcp(10.0.0.5:3306)/
+YUANFANG_ORDERS_PRIMARY_DSN=yuanfang:...@tcp(10.0.0.5:3306)/
 ```
 
-- At startup WuZuo exports each line as an environment variable, unless a variable with
+- At startup Yuanfang exports each line as an environment variable, unless a variable with
   that name is already set. **An exported variable always wins over the file.**
-- Running setup again (`wuzuo init --force`) shows which values are already saved in
+- Running setup again (`yuanfang init --force`) shows which values are already saved in
   the file and asks before replacing each one.
-- The file is created with mode 0600. WuZuo warns if other users can read it.
+- The file is created with mode 0600. Yuanfang warns if other users can read it.
 - You can edit it by hand. Lines may start with `export `; `#` starts a comment.
 - To remove a secret, delete its line.
 
@@ -87,12 +87,12 @@ WUZUO_ORDERS_PRIMARY_DSN=wuzuo:...@tcp(10.0.0.5:3306)/
 
 ```bash
 export ANTHROPIC_API_KEY=...                              # or another provider, see below
-export WUZUO_MYSQL_DSN='wuzuo:<password>@tcp(10.0.0.5:3306)/'
-wuzuo toolset check
-wuzuo ask "orders database got slow after 10:00"
+export YUANFANG_MYSQL_DSN='yuanfang:<password>@tcp(10.0.0.5:3306)/'
+yuanfang toolset check
+yuanfang ask "orders database got slow after 10:00"
 ```
 
-When `WUZUO_MYSQL_DSN` is set and the config file defines no MySQL target, WuZuo adds a
+When `YUANFANG_MYSQL_DSN` is set and the config file defines no MySQL target, Yuanfang adds a
 target named `mysql` that reads its DSN from that variable.
 
 ## Choosing the model
@@ -100,12 +100,12 @@ target named `mysql` that reads its DSN from that variable.
 ### Short names
 
 You never need to type a full model ID. Use a short name with `-m`, in `llm.model`,
-or in `$WUZUO_MODEL`:
+or in `$YUANFANG_MODEL`:
 
 ```bash
-wuzuo ask -m sonnet "orders database got slow"
-wuzuo case replay 20261101-0556 -m deepseek     # re-examine with another model
-wuzuo models                                    # list names and which keys are set
+yuanfang ask -m sonnet "orders database got slow"
+yuanfang case replay 20261101-0556 -m deepseek     # re-examine with another model
+yuanfang models                                    # list names and which keys are set
 ```
 
 Built-in names (each one fixes both the provider and the model). This table is checked
@@ -122,13 +122,13 @@ against the code by a test:
 | `qwen` | qwen | `qwen-plus` |
 | `qwen-max` | qwen | `qwen-max` |
 
-Built-in names are fixed in each WuZuo release and follow the current generation at
+Built-in names are fixed in each Yuanfang release and follow the current generation at
 release time. Each case records the full model ID it actually used.
 
 ### Checking for newer models
 
 ```bash
-wuzuo models fetch          # newest 20 per provider; --all for everything
+yuanfang models fetch          # newest 20 per provider; --all for everything
 ```
 
 `fetch` asks each provider whose key is set (and each alias with its own `base_url`) for
@@ -142,14 +142,14 @@ anthropic (ANTHROPIC_API_KEY)
   claude-opus-5-5    2026-09-10  ← opus
   ...
   ! "fable" → claude-fable-5-1 is not in this list (retired, renamed, or not enabled for this key)
-  To try it:   wuzuo ask -m anthropic/claude-opus-6 "..."
+  To try it:   yuanfang ask -m anthropic/claude-opus-6 "..."
   To switch "opus" to it, add to the config:
     models: { opus: { provider: anthropic, model: claude-opus-6 } }
 ```
 
-It changes nothing; switching models is your decision. WuZuo never checks for models on
+It changes nothing; switching models is your decision. Yuanfang never checks for models on
 its own, so normal runs make no extra network calls. If a configured model has been
-retired, `wuzuo ask` stops with `model "…" is not offered by …` and points to `fetch`.
+retired, `yuanfang ask` stops with `model "…" is not offered by …` and points to `fetch`.
 
 A model name can also be:
 
@@ -181,12 +181,12 @@ Each alias takes `provider` and `model` (required), plus optional `base_url` and
 
 ### When no model is configured
 
-If none of `-m`, `$WUZUO_MODEL`, `$WUZUO_PROVIDER`, `llm.model` or `llm.provider` is set,
-`wuzuo ask` and `wuzuo case replay` ask you to choose:
+If none of `-m`, `$YUANFANG_MODEL`, `$YUANFANG_PROVIDER`, `llm.model` or `llm.provider` is set,
+`yuanfang ask` and `yuanfang case replay` ask you to choose:
 
 ```text
 No model is configured yet.
-Choose a model for WuZuo:
+Choose a model for Yuanfang:
   1)  opus    anthropic/claude-opus-5-5    Claude Opus, strongest default     (default)
   2)  sonnet  anthropic/claude-sonnet-5-5  Claude Sonnet, faster and cheaper
   3)  haiku   anthropic/claude-haiku-5-5   Claude Haiku, fastest
@@ -195,7 +195,7 @@ Also supported once their key is set:
      qwen, qwen-max — set DASHSCOPE_API_KEY
      deepseek, deepseek-r — set DEEPSEEK_API_KEY
 Model [1]: 2
-Save "sonnet" as the default model in /home/you/.wuzuo/config.yaml? [Y/n]
+Save "sonnet" as the default model in /home/you/.yuanfang/config.yaml? [Y/n]
 ```
 
 - Only models whose API key is set are offered. Answer with a number, a name, or
@@ -204,12 +204,12 @@ Save "sonnet" as the default model in /home/you/.wuzuo/config.yaml? [Y/n]
   key is set.
 - Saving writes `llm.model` to the config file, creating it from the starter template
   if needed. Other settings and comments in an existing file are kept.
-- Without a terminal (CI, cron, pipes into stdin), WuZuo does not prompt. It uses the
+- Without a terminal (CI, cron, pipes into stdin), Yuanfang does not prompt. It uses the
   default and prints a note.
-- If no API key is set at all, WuZuo stops before creating a case and prints which
+- If no API key is set at all, Yuanfang stops before creating a case and prints which
   variable enables which models.
 
-`wuzuo init` offers the same choice when it writes a new config file.
+`yuanfang init` offers the same choice when it writes a new config file.
 
 ### Providers and keys
 
@@ -229,8 +229,8 @@ works through `openai` with a `base_url`, ideally wrapped in an alias.
 
 | Setting | Highest priority → lowest |
 |---|---|
-| Model name | `-m` → `$WUZUO_MODEL` → `llm.model` → prompt (terminal) or default |
-| Provider | the model name's own provider (alias or `provider/…`) → `$WUZUO_PROVIDER` → `llm.provider` → first provider whose key is set |
+| Model name | `-m` → `$YUANFANG_MODEL` → `llm.model` → prompt (terminal) or default |
+| Provider | the model name's own provider (alias or `provider/…`) → `$YUANFANG_PROVIDER` → `llm.provider` → first provider whose key is set |
 | Endpoint | alias `base_url` → `llm.base_url` → `ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL` → provider default |
 | API key | alias `api_key_env` → `llm.api_key_env` → provider's key variables |
 
@@ -239,7 +239,7 @@ works through `openai` with a `base_url`, ideally wrapped in an alias.
 
 ## Targets
 
-Each target is one server WuZuo may examine. Select targets with `-t` (repeatable or
+Each target is one server Yuanfang may examine. Select targets with `-t` (repeatable or
 comma-separated). Without `-t`, every configured target is available.
 
 ```yaml
@@ -247,15 +247,15 @@ targets:
   - name: prod-orders
     type: mysql
     description: primary of the orders cluster        # shown to the model
-    dsn_env: WUZUO_PROD_ORDERS_DSN
+    dsn_env: YUANFANG_PROD_ORDERS_DSN
   - name: prod-orders-replica
     type: mysql
     description: read replica of prod-orders
-    dsn_env: WUZUO_PROD_ORDERS_REPLICA_DSN
+    dsn_env: YUANFANG_PROD_ORDERS_REPLICA_DSN
 ```
 
 ```bash
-wuzuo ask "replica is lagging" -t prod-orders,prod-orders-replica
+yuanfang ask "replica is lagging" -t prod-orders,prod-orders-replica
 ```
 
 - `name` must be unique. The model uses it to address the target.
@@ -276,7 +276,7 @@ user:password@tcp(host:3306)/?tls=skip-verify     # TLS without verification (no
 user:password@unix(/var/run/mysqld/mysqld.sock)/
 ```
 
-You do not need to add session settings. WuZuo sets `transaction_read_only=ON`,
+You do not need to add session settings. Yuanfang sets `transaction_read_only=ON`,
 `max_execution_time` and `lock_wait_timeout` on every connection it opens. Create the
 account with [`docs/mysql-privileges.sql`](mysql-privileges.sql).
 
@@ -333,17 +333,17 @@ safety:
 | `safety.max_evidence_chars` | int | `12000` | Characters of each evidence item shown to the model |
 | `safety.allow_explain` | bool | `false` | Enable `mysql_explain` |
 | `safety.allow_raw_sql` | bool | `false` | Enable `mysql_query` |
-| `cases_dir` | path | `$WUZUO_HOME/cases` | Where cases, evidence and reports are stored; `~` is expanded |
+| `cases_dir` | path | `$YUANFANG_HOME/cases` | Where cases, evidence and reports are stored; `~` is expanded |
 
 ## Reference: environment variables
 
 | Variable | Purpose |
 |---|---|
-| `WUZUO_CONFIG` | Config file path |
-| `WUZUO_HOME` | Base directory for the default config file, `credentials` and cases (default `~/.wuzuo`) |
-| `WUZUO_PROVIDER` | Override `llm.provider` |
-| `WUZUO_MODEL` | Override `llm.model` (any model name; `-m` wins over it) |
-| `WUZUO_MYSQL_DSN` | Zero-config MySQL target named `mysql` |
+| `YUANFANG_CONFIG` | Config file path |
+| `YUANFANG_HOME` | Base directory for the default config file, `credentials` and cases (default `~/.yuanfang`) |
+| `YUANFANG_PROVIDER` | Override `llm.provider` |
+| `YUANFANG_MODEL` | Override `llm.model` (any model name; `-m` wins over it) |
+| `YUANFANG_MYSQL_DSN` | Zero-config MySQL target named `mysql` |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL` | Anthropic provider |
 | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` | OpenAI-compatible provider |
 | `DEEPSEEK_API_KEY` | DeepSeek preset |
@@ -353,10 +353,10 @@ safety:
 ## Checking your setup
 
 ```bash
-wuzuo models                 # model names and which keys are set
-wuzuo toolset check          # model, connectivity, privileges, server features
-wuzuo toolset list           # probes available with the current config
-wuzuo toolset run mysql_overview   # run one probe by hand
+yuanfang models                 # model names and which keys are set
+yuanfang toolset check          # model, connectivity, privileges, server features
+yuanfang toolset list           # probes available with the current config
+yuanfang toolset run mysql_overview   # run one probe by hand
 ```
 
 `toolset check` exits non-zero if any check fails, so you can also use it in scripts.
@@ -368,12 +368,12 @@ wuzuo toolset run mysql_overview   # run one probe by hand
 | `no LLM API key found` | Export one of the key variables listed in the message |
 | `model "opus" (anthropic) needs an API key` | The configured model's key is not set; export it, or pick another model with `-m` |
 | `provider openai: no model selected` | Use `-m openai/<id>`, set `OPENAI_MODEL` (`ARK_MODEL` for ark), or define an alias |
-| `"…" is not offered by …` | The model was retired, renamed, or is not enabled for your key. Run `wuzuo models fetch` |
-| `provider deepseek: set DEEPSEEK_API_KEY` | The chosen name belongs to a provider whose key is not set; see `wuzuo models` |
+| `"…" is not offered by …` | The model was retired, renamed, or is not enabled for your key. Run `yuanfang models fetch` |
+| `provider deepseek: set DEEPSEEK_API_KEY` | The chosen name belongs to a provider whose key is not set; see `yuanfang models` |
 | `api_key_env: environment variable X is not set` | Export the variable named in the alias or in `llm.api_key_env` |
 | `target "x": environment variable Y is not set` | Export the DSN variable named in `dsn_env`, or add it to the credentials file |
-| `warning: … credentials is accessible by other users` | `chmod 600 ~/.wuzuo/credentials` |
-| `read config: … no such file` | A path given with `-c` or `WUZUO_CONFIG` does not exist |
+| `warning: … credentials is accessible by other users` | `chmod 600 ~/.yuanfang/credentials` |
+| `read config: … no such file` | A path given with `-c` or `YUANFANG_CONFIG` does not exist |
 | `unknown target "x"` | The `-t` name does not match any `targets[].name` |
 | `mysql_explain is disabled` | Set `safety.allow_explain: true` |
 | `✗ … PROCESS privilege` | Apply [`docs/mysql-privileges.sql`](mysql-privileges.sql) |

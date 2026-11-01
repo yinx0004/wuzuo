@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: Apache-2.0
--- Seed data for the WuZuo lab. Runs once when the container is created.
+-- Seed data for the Yuanfang lab. Runs once when the container is created.
 
 CREATE DATABASE IF NOT EXISTS shop;
 USE shop;

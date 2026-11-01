@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
-# Helpers for staging incidents in the WuZuo lab container. Lab only.
+# Helpers for staging incidents in the Yuanfang lab container. Lab only.
 #
 # Credentials are never passed from here: commands run inside the container
 # and read the passwords from its environment. SQL is passed as a positional
 # argument, so it is never re-parsed by a shell.
 set -euo pipefail
 
-LAB_CONTAINER="${LAB_CONTAINER:-wuzuo-lab-mysql}"
+LAB_CONTAINER="${LAB_CONTAINER:-yuanfang-lab-mysql}"
 
 # app_sql "<statements>" — run statements as the application user, foreground.
 app_sql() {

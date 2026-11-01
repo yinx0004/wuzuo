@@ -1,4 +1,4 @@
-# Contributing to WuZuo
+# Contributing to Yuanfang
 
 Thanks for helping! Issues and pull requests are welcome in English or Chinese.
 
@@ -29,7 +29,7 @@ material) are reported privately, see [SECURITY.md](SECURITY.md).
 Requirements: Go (see `go.mod`), Docker, and optionally [golangci-lint](https://golangci-lint.run/) v2.
 
 ```bash
-make build              # bin/wuzuo
+make build              # bin/yuanfang
 make test               # unit tests (no database or LLM needed)
 make lab-up             # disposable MySQL 8.4 on :13306
 make test-integration   # probes against the lab
@@ -63,7 +63,7 @@ Model IDs appear in exactly one place in the code: `BuiltinModels` in
 `internal/config/provider.go`. Provider defaults refer to it by short name, and
 per-model behaviour (such as refusal fallback) is a field on its rows.
 
-1. Run `wuzuo models fetch` with the provider's key to confirm the new model ID and
+1. Run `yuanfang models fetch` with the provider's key to confirm the new model ID and
    that your key can use it.
 2. Change the row: `Model`, and `RefusalFallback` if the new model's support differs.
 3. Run `go test ./internal/config/`. `TestDocsListBuiltinModels` lists every line in

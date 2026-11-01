@@ -4,7 +4,7 @@
 //
 //	<root>/<case-id>/case.json      metadata, hypotheses, status
 //	<root>/<case-id>/evidence/E*.json sealed evidence
-//	<root>/<case-id>/report.md|json  the autopsy report
+//	<root>/<case-id>/report.md|json  the diagnosis report
 package cases
 
 import (
@@ -18,7 +18,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/yinx0004/wuzuo/internal/report"
+	"github.com/yinx0004/yuanfang/internal/report"
 )
 
 // Status of a case.
@@ -138,7 +138,7 @@ func (s Store) List() ([]*Case, error) {
 }
 
 // SaveReport writes report.json and report.md.
-func (s Store) SaveReport(id string, a *report.Autopsy, markdown string) error {
+func (s Store) SaveReport(id string, a *report.Diagnosis, markdown string) error {
 	data, err := json.MarshalIndent(a, "", "  ")
 	if err != nil {
 		return err
@@ -150,7 +150,7 @@ func (s Store) SaveReport(id string, a *report.Autopsy, markdown string) error {
 }
 
 // LoadReport reads report.json.
-func (s Store) LoadReport(id string) (*report.Autopsy, error) {
+func (s Store) LoadReport(id string) (*report.Diagnosis, error) {
 	full, err := s.resolve(id)
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ func (s Store) LoadReport(id string) (*report.Autopsy, error) {
 	if err != nil {
 		return nil, err
 	}
-	var a report.Autopsy
+	var a report.Diagnosis
 	return &a, json.Unmarshal(data, &a)
 }
 

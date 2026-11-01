@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yinx0004/wuzuo/pkg/toolset"
+	"github.com/yinx0004/yuanfang/pkg/toolset"
 )
 
 func intProp(desc string, min, max int) map[string]any {

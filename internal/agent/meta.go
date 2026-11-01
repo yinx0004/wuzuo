@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yinx0004/wuzuo/internal/cases"
-	"github.com/yinx0004/wuzuo/internal/llm"
-	"github.com/yinx0004/wuzuo/internal/report"
+	"github.com/yinx0004/yuanfang/internal/cases"
+	"github.com/yinx0004/yuanfang/internal/llm"
+	"github.com/yinx0004/yuanfang/internal/report"
 )
 
 // Meta tools structure the examination itself; they do not touch any system.
@@ -17,12 +17,12 @@ const (
 	toolPropose      = "propose_hypothesis"
 	toolRuleOut      = "rule_out"
 	toolReadEvidence = "read_evidence"
-	toolSubmit       = "submit_autopsy"
+	toolSubmit       = "submit_diagnosis"
 )
 
 func metaToolSpecs() []llm.ToolSpec {
 	evidenceIDs := map[string]any{"type": "array", "items": map[string]any{"type": "string"}}
-	autopsyProps, autopsyRequired := report.Schema()
+	diagnosisProps, diagnosisRequired := report.Schema()
 	return []llm.ToolSpec{
 		{
 			Name:        toolPropose,
@@ -55,9 +55,9 @@ func metaToolSpecs() []llm.ToolSpec {
 		},
 		{
 			Name:        toolSubmit,
-			Description: "Submit the final autopsy report. It is checked against the evidence locker: every cited ID must exist, the cause of death must cite evidence unless its confidence is low, and ruled-out hypotheses must cite evidence. If rejected, fix the listed problems and submit again.",
-			Properties:  autopsyProps,
-			Required:    autopsyRequired,
+			Description: "Submit the final diagnosis report. It is checked against the evidence locker: every cited ID must exist, the root cause must cite evidence unless its confidence is low, and ruled-out hypotheses must cite evidence. If rejected, fix the listed problems and submit again.",
+			Properties:  diagnosisProps,
+			Required:    diagnosisRequired,
 		},
 	}
 }
@@ -124,7 +124,7 @@ func (inv *investigation) runMeta(step int, c llm.ToolCall) (content string, isE
 		return fmt.Sprintf("[%s] characters %d-%d of %d\n%s", e.ID, a.Offset, end, len(r), string(r[a.Offset:end])), false, false
 
 	case toolSubmit:
-		var a report.Autopsy
+		var a report.Diagnosis
 		if err := json.Unmarshal(nonEmpty(c.Args), &a); err != nil {
 			return "rejected: report is not valid JSON for the schema: " + err.Error(), true, false
 		}
@@ -133,7 +133,7 @@ func (inv *investigation) runMeta(step int, c llm.ToolCall) (content string, isE
 			inv.record(Entry{Type: EntryError, Step: step, Kind: ErrorReportRejected, Detail: strings.Join(problems, "; ")})
 			return "rejected, fix these problems and submit again:\n- " + strings.Join(problems, "\n- "), true, false
 		}
-		inv.res.Autopsy = &a
+		inv.res.Diagnosis = &a
 		return "accepted", false, true
 
 	default:

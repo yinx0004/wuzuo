@@ -39,8 +39,8 @@ func TestResolveModel(t *testing.T) {
 		{name: "config alias for ark", env: map[string]string{"ARK_API_KEY": "a"}, llm: LLM{Model: "doubao"}, wantKind: KindOpenAI, wantModel: "ep-123", wantURL: "https://ark.cn-beijing.volces.com/api/v3"},
 		{name: "provider/model", env: map[string]string{"OPENAI_API_KEY": "k"}, override: "openai/gpt-5", wantKind: KindOpenAI, wantModel: "gpt-5"},
 		{name: "bare provider name", env: map[string]string{"ARK_API_KEY": "a", "ARK_MODEL": "ep-9"}, override: "ark", wantKind: KindOpenAI, wantModel: "ep-9", wantURL: "https://ark.cn-beijing.volces.com/api/v3"},
-		{name: "-m beats WUZUO_MODEL beats llm.model", env: map[string]string{"ANTHROPIC_API_KEY": "k", "WUZUO_MODEL": "haiku"}, llm: LLM{Model: "opus"}, override: "sonnet", wantKind: KindAnthropic, wantModel: "claude-sonnet-pinned"},
-		{name: "WUZUO_MODEL beats llm.model", env: map[string]string{"ANTHROPIC_API_KEY": "k", "WUZUO_MODEL": "haiku"}, llm: LLM{Model: "opus"}, wantKind: KindAnthropic, wantModel: id("haiku")},
+		{name: "-m beats YUANFANG_MODEL beats llm.model", env: map[string]string{"ANTHROPIC_API_KEY": "k", "YUANFANG_MODEL": "haiku"}, llm: LLM{Model: "opus"}, override: "sonnet", wantKind: KindAnthropic, wantModel: "claude-sonnet-pinned"},
+		{name: "YUANFANG_MODEL beats llm.model", env: map[string]string{"ANTHROPIC_API_KEY": "k", "YUANFANG_MODEL": "haiku"}, llm: LLM{Model: "opus"}, wantKind: KindAnthropic, wantModel: id("haiku")},
 		{name: "raw ID uses configured provider", env: map[string]string{"ARK_API_KEY": "a"}, llm: LLM{Provider: "ark", Model: "ep-777"}, wantKind: KindOpenAI, wantModel: "ep-777", wantURL: "https://ark.cn-beijing.volces.com/api/v3"},
 		{name: "ollama tag with colon is a raw ID", env: map[string]string{"OPENAI_API_KEY": "k"}, llm: LLM{Provider: "openai", BaseURL: "http://h/v1"}, override: "qwen3:32b", wantKind: KindOpenAI, wantModel: "qwen3:32b", wantURL: "http://h/v1"},
 		{name: "llm.base_url does not leak into another provider", env: map[string]string{"ANTHROPIC_API_KEY": "k", "OPENAI_API_KEY": "o"}, llm: LLM{Provider: "openai", Model: "m", BaseURL: "http://gateway/v1"}, override: "opus", wantKind: KindAnthropic, wantModel: id("opus")},
@@ -106,8 +106,8 @@ func TestModelChosen(t *testing.T) {
 		env      map[string]string
 	}{
 		{override: "opus"},
-		{env: map[string]string{"WUZUO_MODEL": "opus"}},
-		{env: map[string]string{"WUZUO_PROVIDER": "deepseek"}},
+		{env: map[string]string{"YUANFANG_MODEL": "opus"}},
+		{env: map[string]string{"YUANFANG_PROVIDER": "deepseek"}},
 		{cfg: Config{LLM: LLM{Model: "opus"}}},
 		{cfg: Config{LLM: LLM{Provider: "ark"}}},
 	} {
@@ -123,7 +123,7 @@ func TestLoadDefaultsAndEnvTarget(t *testing.T) {
 	if err := os.WriteFile(path, []byte("safety:\n  query_timeout: 3s\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("WUZUO_MYSQL_DSN", "u@tcp(localhost:3306)/")
+	t.Setenv("YUANFANG_MYSQL_DSN", "u@tcp(localhost:3306)/")
 	cfg, err := Load(path)
 	if err != nil {
 		t.Fatal(err)

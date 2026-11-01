@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package cli implements the wuzuo command line.
+// Package cli implements the yuanfang command line.
 package cli
 
 import (
@@ -14,8 +14,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/yinx0004/wuzuo/internal/config"
-	"github.com/yinx0004/wuzuo/internal/version"
+	"github.com/yinx0004/yuanfang/internal/config"
+	"github.com/yinx0004/yuanfang/internal/version"
 )
 
 type globalFlags struct {
@@ -40,15 +40,15 @@ func Execute() int {
 func newRoot() *cobra.Command {
 	g := &globalFlags{}
 	root := &cobra.Command{
-		Use:   "wuzuo",
-		Short: "WuZuo (仵作) — AI forensic examiner for production incidents",
-		Long: `WuZuo investigates production incidents the way a forensic examiner works a
-scene: it forms hypotheses, collects read-only evidence, rules causes out,
-and writes an autopsy report where every conclusion cites sealed evidence.`,
+		Use:   "yuanfang",
+		Short: "Yuanfang (元芳) — AI investigator for production incidents",
+		Long: `Yuanfang investigates production incidents from evidence: it forms
+hypotheses, collects read-only evidence, rules causes out, and writes a
+diagnosis report where every conclusion cites sealed evidence.`,
 		Version:       fmt.Sprintf("%s (commit %s, built %s)", version.Version, version.Commit, version.Date),
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		// Secrets saved by setup live in $WUZUO_HOME/credentials; export them
+		// Secrets saved by setup live in $YUANFANG_HOME/credentials; export them
 		// before any command runs. Variables already set take precedence.
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			loaded, warning, err := config.LoadCredentials(config.CredentialsPath())
@@ -61,7 +61,7 @@ and writes an autopsy report where every conclusion cites sealed evidence.`,
 			}
 			return err
 		},
-		// Bare `wuzuo`: on first use in a terminal, offer setup; otherwise help.
+		// Bare `yuanfang`: on first use in a terminal, offer setup; otherwise help.
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			path := g.configPathOrDefault()
 			if _, err := os.Stat(path); err == nil || !interactive() {
@@ -69,20 +69,20 @@ and writes an autopsy report where every conclusion cites sealed evidence.`,
 			}
 			errOut := cmd.ErrOrStderr()
 			in := bufio.NewReader(promptInput)
-			fmt.Fprintf(errOut, "No WuZuo configuration found (%s).\n", path)
+			fmt.Fprintf(errOut, "No Yuanfang configuration found (%s).\n", path)
 			yes, err := confirm(in, errOut, "Set it up now?", true)
 			if err != nil {
 				return err
 			}
 			if !yes {
-				fmt.Fprintln(errOut, "Run `wuzuo init` when you are ready.")
+				fmt.Fprintln(errOut, "Run `yuanfang init` when you are ready.")
 				fmt.Fprintln(errOut)
 				return cmd.Help()
 			}
 			return runSetup(in, errOut, path)
 		},
 	}
-	root.PersistentFlags().StringVarP(&g.configPath, "config", "c", "", "config file (default $WUZUO_CONFIG or ~/.wuzuo/config.yaml)")
+	root.PersistentFlags().StringVarP(&g.configPath, "config", "c", "", "config file (default $YUANFANG_CONFIG or ~/.yuanfang/config.yaml)")
 	root.AddCommand(
 		newAskCmd(g),
 		newCaseCmd(g),

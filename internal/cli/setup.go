@@ -18,8 +18,8 @@ import (
 	driver "github.com/go-sql-driver/mysql"
 	"golang.org/x/term"
 
-	"github.com/yinx0004/wuzuo/internal/config"
-	"github.com/yinx0004/wuzuo/toolsets/mysql"
+	"github.com/yinx0004/yuanfang/internal/config"
+	"github.com/yinx0004/yuanfang/toolsets/mysql"
 )
 
 var targetNameRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$`)
@@ -45,7 +45,7 @@ func existingSecret(in *bufio.Reader, out io.Writer, indent, name, shown, credPa
 // config.yaml never holds secrets. Anything skipped is listed at the end.
 func runSetup(in *bufio.Reader, out io.Writer, path string) error {
 	credPath := config.CredentialsPath()
-	fmt.Fprintf(out, "Setting up WuZuo.\n  settings: %s\n  secrets:  %s (mode 0600)\n\n", displayPath(path), displayPath(credPath))
+	fmt.Fprintf(out, "Setting up Yuanfang.\n  settings: %s\n  secrets:  %s (mode 0600)\n\n", displayPath(path), displayPath(credPath))
 	var todo, savedSecrets []string
 	credExisted, cfgExisted := fileExists(credPath), fileExists(path)
 
@@ -108,7 +108,7 @@ func runSetup(in *bufio.Reader, out io.Writer, path string) error {
 		if err != nil {
 			return err
 		}
-		env := "WUZUO_" + strings.ToUpper(strings.NewReplacer("-", "_", ".", "_").Replace(name)) + "_DSN"
+		env := "YUANFANG_" + strings.ToUpper(strings.NewReplacer("-", "_", ".", "_").Replace(name)) + "_DSN"
 		targets = append(targets, config.Target{Name: name, Type: "mysql", Description: desc, DSNEnv: env})
 		replace := os.Getenv(env) == ""
 		if !replace {
@@ -162,10 +162,10 @@ func runSetup(in *bufio.Reader, out io.Writer, path string) error {
 		fmt.Fprintf(out, "  %s\n", t)
 	}
 	if len(todo) > 0 {
-		fmt.Fprintf(out, "  (or run `wuzuo init --force` again to enter them; values go to %s)\n", displayPath(credPath))
+		fmt.Fprintf(out, "  (or run `yuanfang init --force` again to enter them; values go to %s)\n", displayPath(credPath))
 	}
-	fmt.Fprintln(out, "  wuzuo toolset check                  # verify model, connectivity and privileges")
-	fmt.Fprintln(out, `  wuzuo ask "describe what is wrong"`)
+	fmt.Fprintln(out, "  yuanfang toolset check                  # verify model, connectivity and privileges")
+	fmt.Fprintln(out, `  yuanfang ask "describe what is wrong"`)
 	return nil
 }
 
@@ -221,7 +221,7 @@ func askMySQLConnection(in *bufio.Reader, out io.Writer) (dsn, summary string, e
 	if err != nil {
 		return "", "", err
 	}
-	user, err := ask(in, out, "  User", "wuzuo", userRe, "a MySQL user name (docs/mysql-privileges.sql creates 'wuzuo')")
+	user, err := ask(in, out, "  User", "yuanfang", userRe, "a MySQL user name (docs/mysql-privileges.sql creates 'yuanfang')")
 	if err != nil {
 		return "", "", err
 	}
@@ -261,7 +261,7 @@ func testConnection(out io.Writer, name, dsn string) {
 	switch {
 	case version == "":
 		fmt.Fprintf(out, "  ✗ could not connect: %s\n", strings.Join(failed, "; "))
-		fmt.Fprintln(out, "    Saved anyway; fix it later and run `wuzuo toolset check`.")
+		fmt.Fprintln(out, "    Saved anyway; fix it later and run `yuanfang toolset check`.")
 	case len(failed) == 0:
 		fmt.Fprintf(out, "  ✓ connected (%s), all checks passed\n", version)
 	default:

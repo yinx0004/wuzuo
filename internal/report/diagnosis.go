@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package report defines the autopsy report (尸格): the structured verdict an
+// Package report defines the diagnosis report: the structured verdict an
 // investigation must produce, the rules it must satisfy, and its renderings.
 package report
 
@@ -37,7 +37,7 @@ type Event struct {
 	Evidence    []string `json:"evidence"`
 }
 
-// Action is a recommended remediation. WuZuo never executes these.
+// Action is a recommended remediation. Yuanfang never executes these.
 type Action struct {
 	Description string `json:"description"`
 	// Risk of performing the action: low, medium, high.
@@ -46,11 +46,11 @@ type Action struct {
 	Command string `json:"command,omitempty"`
 }
 
-// Autopsy is the final verdict of an investigation.
-type Autopsy struct {
+// Diagnosis is the final verdict of an investigation.
+type Diagnosis struct {
 	Title           string     `json:"title"`
 	Summary         string     `json:"summary"`
-	CauseOfDeath    Finding    `json:"cause_of_death"`
+	RootCause       Finding    `json:"root_cause"`
 	Contributing    []Finding  `json:"contributing_factors,omitempty"`
 	RuledOut        []RuledOut `json:"ruled_out,omitempty"`
 	Timeline        []Event    `json:"timeline,omitempty"`
@@ -63,24 +63,24 @@ type EvidenceChecker interface {
 	Missing(ids []string) []string
 }
 
-// Validate enforces the forensic rules: every conclusion cites evidence that
+// Validate enforces the evidence rules: every conclusion cites evidence that
 // actually exists in the locker, and unsupported conclusions are labelled as
 // low confidence. It returns human-readable problems for the model to fix.
-func (a *Autopsy) Validate(ev EvidenceChecker) []string {
+func (a *Diagnosis) Validate(ev EvidenceChecker) []string {
 	var p []string
 	if strings.TrimSpace(a.Summary) == "" {
 		p = append(p, "summary is empty")
 	}
-	if strings.TrimSpace(a.CauseOfDeath.Statement) == "" {
-		p = append(p, "cause_of_death.statement is empty")
+	if strings.TrimSpace(a.RootCause.Statement) == "" {
+		p = append(p, "root_cause.statement is empty")
 	}
-	if !validConfidence(a.CauseOfDeath.Confidence) {
-		p = append(p, fmt.Sprintf("cause_of_death.confidence %q must be high, medium or low", a.CauseOfDeath.Confidence))
+	if !validConfidence(a.RootCause.Confidence) {
+		p = append(p, fmt.Sprintf("root_cause.confidence %q must be high, medium or low", a.RootCause.Confidence))
 	}
-	if len(a.CauseOfDeath.Evidence) == 0 && a.CauseOfDeath.Confidence != ConfidenceLow {
-		p = append(p, "cause_of_death cites no evidence: cite evidence IDs, or set confidence to low and say the cause is unconfirmed")
+	if len(a.RootCause.Evidence) == 0 && a.RootCause.Confidence != ConfidenceLow {
+		p = append(p, "root_cause cites no evidence: cite evidence IDs, or set confidence to low and say the cause is unconfirmed")
 	}
-	p = append(p, missing("cause_of_death", a.CauseOfDeath.Evidence, ev)...)
+	p = append(p, missing("root_cause", a.RootCause.Evidence, ev)...)
 	for i, f := range a.Contributing {
 		where := fmt.Sprintf("contributing_factors[%d]", i)
 		if !validConfidence(f.Confidence) {
@@ -125,7 +125,7 @@ func missing(where string, ids []string, ev EvidenceChecker) []string {
 	return nil
 }
 
-// Schema is the JSON Schema of Autopsy, used as the submit_autopsy tool input.
+// Schema is the JSON Schema of Diagnosis, used as the submit_diagnosis tool input.
 func Schema() (props map[string]any, required []string) {
 	evidenceIDs := map[string]any{
 		"type":        "array",
@@ -143,9 +143,9 @@ func Schema() (props map[string]any, required []string) {
 		"required": []string{"statement", "confidence", "evidence"},
 	}
 	props = map[string]any{
-		"title":          map[string]any{"type": "string", "description": "One-line incident title."},
-		"summary":        map[string]any{"type": "string", "description": "2-4 sentences: what happened, why, and the impact."},
-		"cause_of_death": finding,
+		"title":      map[string]any{"type": "string", "description": "One-line incident title."},
+		"summary":    map[string]any{"type": "string", "description": "2-4 sentences: what happened, why, and the impact."},
+		"root_cause": finding,
 		"contributing_factors": map[string]any{
 			"type": "array", "items": finding,
 			"description": "Conditions that made the incident possible or worse.",
@@ -181,7 +181,7 @@ func Schema() (props map[string]any, required []string) {
 				"properties": map[string]any{
 					"description": map[string]any{"type": "string"},
 					"risk":        map[string]any{"type": "string", "enum": []string{"low", "medium", "high"}},
-					"command":     map[string]any{"type": "string", "description": "Optional exact command for a human to review. Never executed by WuZuo."},
+					"command":     map[string]any{"type": "string", "description": "Optional exact command for a human to review. Never executed by Yuanfang."},
 				},
 				"required": []string{"description", "risk"},
 			},
@@ -191,5 +191,5 @@ func Schema() (props map[string]any, required []string) {
 			"description": "What could not be determined and what evidence would settle it.",
 		},
 	}
-	return props, []string{"title", "summary", "cause_of_death"}
+	return props, []string{"title", "summary", "root_cause"}
 }

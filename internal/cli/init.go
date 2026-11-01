@@ -11,16 +11,16 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/yinx0004/wuzuo/internal/config"
+	"github.com/yinx0004/yuanfang/internal/config"
 )
 
 func newInitCmd(g *globalFlags) *cobra.Command {
 	var force bool
 	cmd := &cobra.Command{
 		Use:   "init",
-		Short: "Set up WuZuo: choose a model, add a target, write the config file",
+		Short: "Set up Yuanfang: choose a model, add a target, write the config file",
 		Long: `In a terminal, walk through choosing the default model and adding a MySQL
-target, then write ~/.wuzuo/config.yaml (or --config) and list what is left
+target, then write ~/.yuanfang/config.yaml (or --config) and list what is left
 to do. Without a terminal, write a commented starter file using the default
 model.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -45,7 +45,7 @@ model.`,
 			if err := os.WriteFile(path, []byte(config.Template(model, nil)), 0o600); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Created %s (starter config, model %q). No secrets were written.\nnext: add a target, then run `wuzuo toolset check`\n", displayPath(path), model)
+			fmt.Fprintf(cmd.OutOrStdout(), "Created %s (starter config, model %q). No secrets were written.\nnext: add a target, then run `yuanfang toolset check`\n", displayPath(path), model)
 			return nil
 		},
 	}

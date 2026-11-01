@@ -1,5 +1,5 @@
-BIN        := bin/wuzuo
-PKG        := github.com/yinx0004/wuzuo
+BIN        := bin/yuanfang
+PKG        := github.com/yinx0004/yuanfang
 VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS    := -s -w -X $(PKG)/internal/version.Version=$(VERSION) \
               -X $(PKG)/internal/version.Commit=$(shell git rev-parse --short HEAD 2>/dev/null || echo none) \
@@ -9,7 +9,7 @@ LAB        := lab/docker-compose.yml
 # gitignored file; nothing secret is committed.
 LAB_SECRETS := lab/.env
 -include $(LAB_SECRETS)
-LAB_DSN      = wuzuo:$(LAB_WUZUO_PASSWORD)@tcp(127.0.0.1:13306)/
+LAB_DSN      = yuanfang:$(LAB_YUANFANG_PASSWORD)@tcp(127.0.0.1:13306)/
 LAB_ROOT_DSN = root:$(LAB_ROOT_PASSWORD)@tcp(127.0.0.1:13306)/
 
 .PHONY: all build test test-integration lint fmt tidy clean lab-secrets lab-up lab-stop lab-destroy lab-env require-lab
@@ -17,13 +17,13 @@ LAB_ROOT_DSN = root:$(LAB_ROOT_PASSWORD)@tcp(127.0.0.1:13306)/
 all: lint test build
 
 build:
-	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN) ./cmd/wuzuo
+	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN) ./cmd/yuanfang
 
 test:
 	go test -race ./...
 
 test-integration: require-lab
-	@WUZUO_TEST_MYSQL_DSN='$(LAB_DSN)' WUZUO_TEST_MYSQL_ROOT_DSN='$(LAB_ROOT_DSN)' \
+	@YUANFANG_TEST_MYSQL_DSN='$(LAB_DSN)' YUANFANG_TEST_MYSQL_ROOT_DSN='$(LAB_ROOT_DSN)' \
 		go test -race -tags integration ./toolsets/...
 
 lint:
@@ -41,7 +41,7 @@ clean:
 lab-secrets:
 	@if [ ! -f $(LAB_SECRETS) ]; then \
 		umask 077; \
-		printf 'LAB_ROOT_PASSWORD=%s\nLAB_WUZUO_PASSWORD=%s\nLAB_APP_PASSWORD=%s\n' \
+		printf 'LAB_ROOT_PASSWORD=%s\nLAB_YUANFANG_PASSWORD=%s\nLAB_APP_PASSWORD=%s\n' \
 			"$$(openssl rand -hex 16)" "$$(openssl rand -hex 16)" "$$(openssl rand -hex 16)" > $(LAB_SECRETS); \
 		echo "generated $(LAB_SECRETS)"; \
 	fi
@@ -64,7 +64,7 @@ lab-destroy: lab-secrets
 require-lab:
 	@test -f $(LAB_SECRETS) || { echo "no lab secrets; run make lab-up first" >&2; exit 1; }
 
-# eval "$(make -s lab-env)" points WuZuo at the lab.
+# eval "$(make -s lab-env)" points Yuanfang at the lab.
 lab-env: require-lab
-	@echo "export WUZUO_CONFIG=$(CURDIR)/lab/wuzuo.yaml"
-	@echo "export WUZUO_LAB_DSN='$(LAB_DSN)'"
+	@echo "export YUANFANG_CONFIG=$(CURDIR)/lab/yuanfang.yaml"
+	@echo "export YUANFANG_LAB_DSN='$(LAB_DSN)'"

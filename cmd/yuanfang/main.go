@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Command wuzuo is an AI forensic examiner for production incidents.
+// Command yuanfang is an AI investigator for production incidents.
 package main
 
 import (
 	"os"
 
-	"github.com/yinx0004/wuzuo/internal/cli"
+	"github.com/yinx0004/yuanfang/internal/cli"
 )
 
 func main() {

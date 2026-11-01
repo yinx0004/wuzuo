@@ -1,11 +1,11 @@
 # Security Policy
 
-WuZuo connects to production systems and sends diagnostic data to an LLM provider.
+Yuanfang connects to production systems and sends diagnostic data to an LLM provider.
 
 ## Reporting a vulnerability
 
 Please **do not open a public issue**. Report privately via
-[GitHub Security Advisories](https://github.com/yinx0004/wuzuo/security/advisories/new).
+[GitHub Security Advisories](https://github.com/yinx0004/yuanfang/security/advisories/new).
 We aim to acknowledge within 3 working days.
 
 We are most interested in:
@@ -18,20 +18,20 @@ We are most interested in:
 
 ## Where secrets are stored
 
-API keys and DSNs come from environment variables or from `~/.wuzuo/credentials`, which
+API keys and DSNs come from environment variables or from `~/.yuanfang/credentials`, which
 the setup wizard writes with mode 0600. `config.yaml` never contains secrets. Report
 any path by which a secret ends up elsewhere: logs, case files, the config, or the model.
 
-## What WuZuo keeps on disk
+## What Yuanfang keeps on disk
 
-Each case directory (`~/.wuzuo/cases/<id>/`, files mode 0600) holds the sealed
+Each case directory (`~/.yuanfang/cases/<id>/`, files mode 0600) holds the sealed
 evidence, the report, and `transcript.jsonl`: every message exchanged with the model,
 including the system prompt, the redacted probe output it was shown, and the model's
 replies and thinking summaries. The transcript contains exactly what was sent to and
 received from the model, so it is as sensitive as that conversation and contains no
 API keys or DSNs.
 
-## What WuZuo sends to the model
+## What Yuanfang sends to the model
 
 The complaint you type, target names and descriptions, and redacted probe output. Probe
 output contains server metadata such as hostnames, user names, schema and table names,

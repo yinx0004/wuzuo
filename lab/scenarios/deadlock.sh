@@ -10,4 +10,4 @@ sleep 0.5
 app_sql "BEGIN; UPDATE inventory SET stock = stock - 1 WHERE sku = 'SKU-2'; DO SLEEP(2); UPDATE inventory SET stock = stock - 1 WHERE sku = 'SKU-1'; COMMIT;" || true
 wait || true
 echo "staged: deadlock between two inventory transactions (one error above is expected)"
-echo "try:    wuzuo ask \"checkout sometimes fails with a deadlock error\" -t lab"
+echo "try:    yuanfang ask \"checkout sometimes fails with a deadlock error\" -t lab"

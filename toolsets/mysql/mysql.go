@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package mysql is WuZuo's MySQL toolset: read-only probes over
+// Package mysql is Yuanfang's MySQL toolset: read-only probes over
 // performance_schema, sys, information_schema and SHOW statements for
 // MySQL 8.0 and later.
 //
@@ -22,8 +22,8 @@ import (
 
 	driver "github.com/go-sql-driver/mysql"
 
-	"github.com/yinx0004/wuzuo/pkg/redact"
-	"github.com/yinx0004/wuzuo/pkg/toolset"
+	"github.com/yinx0004/yuanfang/pkg/redact"
+	"github.com/yinx0004/yuanfang/pkg/toolset"
 )
 
 // Target is one MySQL server.
