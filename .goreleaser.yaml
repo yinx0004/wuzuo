@@ -31,12 +31,18 @@ archives:
 checksum:
   name_template: checksums.txt
 
+release:
+  # Tags with a suffix (v0.1.0-alpha.1, v0.1.0-rc.1) are published as GitHub
+  # pre-releases and are not shown as the latest release.
+  prerelease: auto
+
 dockers_v2:
   - images:
       - ghcr.io/yinx0004/wuzuo
     tags:
       - "{{ .Version }}"
-      - latest
+      # Pre-releases (v0.1.0-alpha.1) must not move "latest"; empty tags are dropped.
+      - "{{ if not .Prerelease }}latest{{ end }}"
     platforms: [linux/amd64, linux/arm64]
     labels:
       org.opencontainers.image.source: https://github.com/yinx0004/wuzuo
