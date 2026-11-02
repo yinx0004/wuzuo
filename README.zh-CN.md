@@ -78,6 +78,16 @@ make lab-stop                              # 暂停靶场，保留数据
 make lab-destroy                           # 彻底删除靶场
 ```
 
+### 在靶场故障上自动评测
+
+`make eval` 用靶场故障自动给元芳打分。每次运行会重启靶场 MySQL，制造故障，记下标准答案（锁等待场景记的是阻塞连接和等待连接的真实 ID），只把问题描述交给 `yuanfang ask`，再按规则给报告打分：根因找得对不对，引用的证据能不能证明，处置建议是否安全。每次结果是 `PASS`、`FAIL`，或者靶场本身出问题时记为 `ERROR`。评测会真实调用模型，会消耗 token。
+
+```bash
+make eval EVAL_ARGS="-scenario lock-wait -runs 3"   # 结果在 eval/results/<时间>/
+```
+
+目前已有的场景：`lock-wait`。后续场景见 [#15](https://github.com/yinx0004/yuanfang/issues/15)，详细说明见 [eval/README.md](eval/README.md)。
+
 ## 命令
 
 | 命令 | 说明 |
