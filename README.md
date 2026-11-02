@@ -14,6 +14,7 @@
 <p align="center">
   <a href="https://github.com/yinx0004/yuanfang/actions/workflows/ci.yml"><img src="https://github.com/yinx0004/yuanfang/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License"></a>
+  <a href="#evaluation">Evaluation</a> ·
   <a href="README.zh-CN.md">中文文档</a>
 </p>
 
@@ -37,7 +38,7 @@ Yuanfang answers that question for database incidents, and answers it with evide
   model, without connecting to production again.
 - It is graded on evidence, not just answers: `make eval` stages real incidents in a lab,
   and a run passes only if Yuanfang names the right cause and the evidence it cites actually
-  shows it. A lucky guess fails ([details](#evaluate-on-staged-incidents)).
+  shows it. A lucky guess fails ([how it is graded](#evaluation)).
 
 > Status: early development (v0.1). MySQL is supported now; MongoDB comes next.
 
@@ -82,6 +83,35 @@ It holds an X record lock on orders.PRIMARY that every later update of that row 
 1. Identify the owner of session 48 and commit or roll back; as a last resort `KILL 48`. *(risk: medium)*
 2. Set a transaction timeout in the application's connection pool. *(risk: low)*
 ```
+
+## Evaluation
+
+`make eval` grades Yuanfang on incidents staged in the [lab](#try-it-on-a-staged-incident).
+Each run restarts the lab MySQL, stages the incident, records the ground truth, runs
+`yuanfang ask` with only the complaint, and grades the report. What the eval holds Yuanfang
+to:
+
+- **The answer comes from the live incident.** The ground truth is recorded when the incident
+  is staged (for lock wait, the real IDs of the blocking and waiting connections), so it
+  changes every run. It is not a fixed expected text.
+- **Evidence is checked, not just the conclusion.** The evidence a report cites must contain
+  the facts it claims, whichever probe produced it. A lucky guess fails.
+- **Lab failures do not count against Yuanfang.** The eval waits until the incident is stable
+  before asking and rechecks it afterwards; if the lab misbehaved, the run is `ERROR`, not
+  `FAIL`.
+- **Safety is graded.** A destructive command, or a KILL of the wrong connection, fails the run
+  even when the diagnosis is right.
+- **Rules, not a model judge.** Each dimension gets its own result instead of one summed
+  score, so runs are reproducible and every failure says exactly what was missed.
+
+```bash
+make lab-up
+make eval EVAL_ARGS="-scenario lock-wait -runs 3"   # calls the model for real; results in eval/results/
+```
+
+Scenarios so far: `lock-wait`; more are tracked in
+[#15](https://github.com/yinx0004/yuanfang/issues/15). See **[eval/README.md](eval/README.md)**
+for how a run works, every check, and the results layout.
 
 ## Quick start
 
@@ -162,36 +192,7 @@ make lab-stop                           # pause the lab, keep its data
 make lab-destroy                        # remove it completely
 ```
 
-### Evaluate on staged incidents
-
-`make eval` grades Yuanfang on lab incidents automatically. Each run restarts the lab MySQL,
-stages the incident, records the ground truth (for lock wait, the real blocking and waiting
-connection IDs), runs `yuanfang ask` with only the complaint, and grades the report with
-rules: did it name the right cause, does the cited evidence show it, and is every
-recommendation safe. A run ends in `PASS`, `FAIL`, or `ERROR` when the lab itself
-misbehaved. It calls the model for real, so it costs tokens.
-
-What the eval holds Yuanfang to:
-
-- **The answer comes from the live incident.** The ground truth is recorded when the incident
-  is staged (for lock wait, the real IDs of the blocking and waiting connections), so it
-  changes every run. It is not a fixed expected text.
-- **Evidence is checked, not just the conclusion.** The evidence a report cites must contain
-  the facts it claims, whichever probe produced it.
-- **Lab failures do not count against Yuanfang.** The eval waits until the incident is stable
-  before asking and rechecks it afterwards; if the lab misbehaved, the run is `ERROR`, not
-  `FAIL`.
-- **Safety is graded.** A destructive command, or a KILL of the wrong connection, fails the run
-  even when the diagnosis is right.
-- **Rules, not a model judge.** Each dimension gets its own result instead of one summed
-  score, so runs are reproducible and every failure says exactly what was missed.
-
-```bash
-make eval EVAL_ARGS="-scenario lock-wait -runs 3"   # results in eval/results/<time>/
-```
-
-Scenarios so far: `lock-wait`. More are tracked in
-[#15](https://github.com/yinx0004/yuanfang/issues/15); details in [eval/README.md](eval/README.md).
+To grade Yuanfang on these incidents automatically, see [Evaluation](#evaluation).
 
 ## Commands
 
