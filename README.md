@@ -35,6 +35,9 @@ Yuanfang answers that question for database incidents, and answers it with evide
   `transaction_read_only=ON` with a time limit. Yuanfang suggests fixes but never runs them.
 - `yuanfang case replay` re-runs the analysis on saved evidence, for example with another
   model, without connecting to production again.
+- It is graded, not just demoed: `make eval` stages incidents in a lab, records the ground
+  truth, and checks whether Yuanfang named the right cause with evidence that actually shows
+  it ([details](#evaluate-on-staged-incidents)).
 
 > Status: early development (v0.1). MySQL is supported now; MongoDB comes next.
 
