@@ -1,11 +1,9 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" width="96" height="96" alt="Yuanfang logo">
+  <img src="docs/assets/banner.webp" width="360" alt="Yuanfang: 元芳 looking through a magnifier, asking 元芳，你怎么看？">
 </p>
 
-<h1 align="center">Yuanfang</h1>
-
 <p align="center">
-  元芳 · AI SRE forensics agent<br>
+  AI SRE forensics agent<br>
   <b>Every incident leaves evidence.</b>
 </p>
 
