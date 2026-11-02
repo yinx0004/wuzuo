@@ -1,5 +1,7 @@
 # Eval
 
+[中文](README.zh-CN.md)
+
 Examines Yuanfang on incidents staged in the local lab and grades each
 diagnosis against the ground truth. Tracking issue: #15.
 
