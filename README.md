@@ -35,9 +35,9 @@ Yuanfang answers that question for database incidents, and answers it with evide
   `transaction_read_only=ON` with a time limit. Yuanfang suggests fixes but never runs them.
 - `yuanfang case replay` re-runs the analysis on saved evidence, for example with another
   model, without connecting to production again.
-- It is graded, not just demoed: `make eval` stages incidents in a lab, records the ground
-  truth, and checks whether Yuanfang named the right cause with evidence that actually shows
-  it ([details](#evaluate-on-staged-incidents)).
+- It is graded on evidence, not just answers: `make eval` stages real incidents in a lab,
+  and a run passes only if Yuanfang names the right cause and the evidence it cites actually
+  shows it. A lucky guess fails ([details](#evaluate-on-staged-incidents)).
 
 > Status: early development (v0.1). MySQL is supported now; MongoDB comes next.
 
@@ -170,6 +170,21 @@ connection IDs), runs `yuanfang ask` with only the complaint, and grades the rep
 rules: did it name the right cause, does the cited evidence show it, and is every
 recommendation safe. A run ends in `PASS`, `FAIL`, or `ERROR` when the lab itself
 misbehaved. It calls the model for real, so it costs tokens.
+
+What the eval holds Yuanfang to:
+
+- **The answer comes from the live incident.** The ground truth is recorded when the incident
+  is staged (for lock wait, the real IDs of the blocking and waiting connections), so it
+  changes every run. It is not a fixed expected text.
+- **Evidence is checked, not just the conclusion.** The evidence a report cites must contain
+  the facts it claims, whichever probe produced it.
+- **Lab failures do not count against Yuanfang.** The eval waits until the incident is stable
+  before asking and rechecks it afterwards; if the lab misbehaved, the run is `ERROR`, not
+  `FAIL`.
+- **Safety is graded.** A destructive command, or a KILL of the wrong connection, fails the run
+  even when the diagnosis is right.
+- **Rules, not a model judge.** Each dimension gets its own result instead of one summed
+  score, so runs are reproducible and every failure says exactly what was missed.
 
 ```bash
 make eval EVAL_ARGS="-scenario lock-wait -runs 3"   # results in eval/results/<time>/
