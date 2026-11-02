@@ -12,7 +12,7 @@ LAB_SECRETS := lab/.env
 LAB_DSN      = yuanfang:$(LAB_YUANFANG_PASSWORD)@tcp(127.0.0.1:13306)/
 LAB_ROOT_DSN = root:$(LAB_ROOT_PASSWORD)@tcp(127.0.0.1:13306)/
 
-.PHONY: all build test test-integration lint fmt tidy clean lab-secrets lab-up lab-stop lab-destroy lab-env require-lab
+.PHONY: all build test test-integration lint fmt tidy clean lab-secrets lab-up lab-stop lab-destroy lab-env require-lab eval
 
 all: lint test build
 
@@ -25,6 +25,12 @@ test:
 test-integration: require-lab
 	@YUANFANG_TEST_MYSQL_DSN='$(LAB_DSN)' YUANFANG_TEST_MYSQL_ROOT_DSN='$(LAB_ROOT_DSN)' \
 		go test -race -tags integration ./toolsets/...
+
+# Examine Yuanfang on incidents staged in the lab. Calls the model for real
+# and restarts the lab MySQL; see eval/README.md.
+#   make eval EVAL_ARGS="-scenario lock-wait -runs 3 -m sonnet"
+eval: require-lab
+	go run ./eval $(EVAL_ARGS)
 
 lint:
 	golangci-lint run

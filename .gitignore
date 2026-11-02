@@ -7,3 +7,4 @@ coverage.*
 .idea/
 .vscode/
 lab/.env
+/eval/results/

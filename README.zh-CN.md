@@ -22,6 +22,7 @@
 - 最后的诊断报告必须引用这些证物。元芳会逐条核对，引用了不存在的证物就打回重写；没有证据支撑的原因只能标为低置信度。
 - 探针用最小权限账号连接，会话设置了 `transaction_read_only=ON` 和执行超时。元芳只给处置建议，不会执行。
 - `yuanfang case replay` 可以基于已保存的证物重新分析，比如换一个模型，不需要再连生产库。
+- 不只是演示，还有评测：`make eval` 在靶场里制造故障、记下标准答案，检查元芳是否找对了根因，引用的证据能否证明（[详见](#在靶场故障上自动评测)）。
 
 > 状态：早期开发（v0.1）。目前支持 MySQL，下一个是 MongoDB。
 
@@ -77,6 +78,16 @@ lab/scenarios/reset.sh                     # 结束正在模拟的故障
 make lab-stop                              # 暂停靶场，保留数据
 make lab-destroy                           # 彻底删除靶场
 ```
+
+### 在靶场故障上自动评测
+
+`make eval` 用靶场故障自动给元芳打分。每次运行会重启靶场 MySQL，制造故障，记下标准答案（锁等待场景记的是阻塞连接和等待连接的真实 ID），只把问题描述交给 `yuanfang ask`，再按规则给报告打分：根因找得对不对，引用的证据能不能证明，处置建议是否安全。每次结果是 `PASS`、`FAIL`，或者靶场本身出问题时记为 `ERROR`。评测会真实调用模型，会消耗 token。
+
+```bash
+make eval EVAL_ARGS="-scenario lock-wait -runs 3"   # 结果在 eval/results/<时间>/
+```
+
+目前已有的场景：`lock-wait`。后续场景见 [#15](https://github.com/yinx0004/yuanfang/issues/15)，详细说明见 [eval/README.md](eval/README.md)。
 
 ## 命令
 

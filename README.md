@@ -35,6 +35,9 @@ Yuanfang answers that question for database incidents, and answers it with evide
   `transaction_read_only=ON` with a time limit. Yuanfang suggests fixes but never runs them.
 - `yuanfang case replay` re-runs the analysis on saved evidence, for example with another
   model, without connecting to production again.
+- It is graded, not just demoed: `make eval` stages incidents in a lab, records the ground
+  truth, and checks whether Yuanfang named the right cause with evidence that actually shows
+  it ([details](#evaluate-on-staged-incidents)).
 
 > Status: early development (v0.1). MySQL is supported now; MongoDB comes next.
 
@@ -159,6 +162,22 @@ make lab-stop                           # pause the lab, keep its data
 make lab-destroy                        # remove it completely
 ```
 
+### Evaluate on staged incidents
+
+`make eval` grades Yuanfang on lab incidents automatically. Each run restarts the lab MySQL,
+stages the incident, records the ground truth (for lock wait, the real blocking and waiting
+connection IDs), runs `yuanfang ask` with only the complaint, and grades the report with
+rules: did it name the right cause, does the cited evidence show it, and is every
+recommendation safe. A run ends in `PASS`, `FAIL`, or `ERROR` when the lab itself
+misbehaved. It calls the model for real, so it costs tokens.
+
+```bash
+make eval EVAL_ARGS="-scenario lock-wait -runs 3"   # results in eval/results/<time>/
+```
+
+Scenarios so far: `lock-wait`. More are tracked in
+[#15](https://github.com/yinx0004/yuanfang/issues/15); details in [eval/README.md](eval/README.md).
+
 ## Commands
 
 | Command | |
@@ -225,6 +244,7 @@ pkg/toolset          public toolset/probe interface for extensions
 pkg/redact           SQL literal and secret redaction
 toolsets/mysql       MySQL 8.0+ probes and the read-only guard
 lab                  local test lab for development: disposable MySQL plus incident scripts
+eval                 evaluation: stages lab incidents and grades the diagnoses
 ```
 
 ## Roadmap
