@@ -83,7 +83,7 @@ func (rn *runner) run(ctx context.Context, name string, index int, dir string) (
 		// No case means Yuanfang never started an investigation (config,
 		// credentials, ...): nothing to grade.
 		if agentErr != nil {
-			err = fmt.Errorf("%w (yuanfang: %v; see %s)", err, agentErr, filepath.Join(dir, "yuanfang.log"))
+			err = fmt.Errorf("%w (yuanfang: %w; see %s)", err, agentErr, filepath.Join(dir, "yuanfang.log"))
 		}
 		return fail("load case", err)
 	}

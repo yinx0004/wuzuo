@@ -18,7 +18,7 @@ import (
 type lockWait struct {
 	a, b       *sql.Conn
 	aID, bID   int64
-	bDone      chan error
+	bDone      chan struct{} // closed when B's statement returns
 	readyAfter time.Duration
 	timeout    time.Duration
 }
@@ -50,13 +50,15 @@ func (s *lockWait) Inject(ctx context.Context, lab *Lab) (*Truth, func(), error)
 	if _, err := s.b.ExecContext(ctx, "SET SESSION innodb_lock_wait_timeout = 600"); err != nil {
 		return nil, cleanup, fmt.Errorf("session B: %w", err)
 	}
-	s.bDone = make(chan error, 1)
+	s.bDone = make(chan struct{})
+	// Detached from ctx: cancelling would close the connection mid-wait;
+	// cleanup ends B with KILL instead.
+	bctx := context.WithoutCancel(ctx)
 	go func() {
-		// Not ctx: cancelling would close the connection mid-wait; cleanup
-		// ends B with KILL instead.
-		_, err := s.b.ExecContext(context.Background(), fmt.Sprintf(
+		// The error is expected (KILL in cleanup) and not needed.
+		_, _ = s.b.ExecContext(bctx, fmt.Sprintf(
 			"UPDATE orders SET amount = amount + 1 WHERE id = %d", lockWaitRow))
-		s.bDone <- err
+		close(s.bDone)
 	}()
 
 	return &Truth{
@@ -130,8 +132,7 @@ func (o lockObservation) String() string {
 func (s *lockWait) observe(ctx context.Context, lab *Lab) (lockObservation, error) {
 	var o lockObservation
 	select {
-	case err := <-s.bDone:
-		s.bDone <- err // keep it for cleanup
+	case <-s.bDone:
 		o.bFinished = true
 	default:
 	}
